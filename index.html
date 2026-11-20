@@ -128,6 +128,12 @@ td:first-child,th:first-child{text-align:left}
 .soon ul{margin:0;padding:0;list-style:none;font-size:13px;line-height:1.7}
 .soon .none{color:var(--sub);font-size:13px}
 @media (max-width:700px){.soon{grid-template-columns:1fr}}
+.bossbtn{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:7px 12px;cursor:pointer;font-weight:600;color:#5a3e1b}
+.bossbtn.on{background:#5a3e1b;color:#fff;border-color:#5a3e1b}
+.lhead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 0 6px;border-bottom:2px solid var(--line)}
+.lhead h3{margin:0;font-size:17px;flex:1}
+.lhead small{color:var(--sub);font-weight:400;display:block;font-size:13px;margin-top:3px}
+@media print{header,.bar,#soon,.demo,.legend,.lhead button,.toast{display:none!important}body{background:#fff}.panel{border:0;padding:0}.row{break-inside:avoid}}
 .hbtn.ai{background:#fff;color:#7a4fb3}
 .qa-tools{display:flex;gap:8px;margin-top:8px}
 .qa-tools .btn{flex:1;display:flex;align-items:center;justify-content:center;gap:6px}
@@ -163,6 +169,7 @@ td:first-child,th:first-child{text-align:left}
   .dn .hn{display:none}
   .item{font-size:10px;padding:0 2px;border-left-width:2px;text-overflow:clip}
   .tabs button{padding:6px 10px;font-size:14px}
+  .bossbtn{padding:6px 10px;font-size:14px}
   .row{flex-wrap:wrap}
 }
 </style>
@@ -192,6 +199,7 @@ td:first-child,th:first-child{text-align:left}
       <button data-v="duty">假日輪班</button>
       <button data-v="stat">休假統計</button>
     </div>
+    <button class="bossbtn" id="bossBtn" onclick="toggleBoss()">👔 老闆行程</button>
     <span class="sp"></span>
     <select id="fPerson"><option value="">全部人員</option></select>
     <div class="chk">
@@ -473,6 +481,7 @@ function soonHTML(){
   return '<div class="soon">'+box(0,'')+box(1,'tm')+'</div>';
 }
 async function render(){
+  syncHash();
   $('soon').innerHTML = soonHTML();
   document.getElementById('mLabel').textContent = S.y+' 年 '+(S.m+1)+' 月';
   await Promise.all([ensureHolidays(S.y), ensureHolidays(S.m===0?S.y-1:S.y), ensureHolidays(S.m===11?S.y+1:S.y)]);
@@ -516,15 +525,42 @@ function rowsFor(ds){
       return `<div class="row" onclick="showEvent('${e.id}')"><span class="t">${esc(evTime(e))}</span><span class="tag" style="background:${c}1f;color:${c}">${esc(e.類別||'其他')}</span><span>${esc(e.標題)}${e.地點?' <small style="color:var(--sub)">@'+esc(e.地點)+'</small>':''}</span></div>`; }).join('');
 }
 
+const BOSS = () => S.staff.includes('老闆') ? '老闆' : (S.staff[0]||'');
+function setView(v){ S.view=v; [...$('tabs').children].forEach(b=>b.classList.toggle('on',b.dataset.v===v)); }
+function toggleBoss(){
+  const on = fPerson()===BOSS() && S.view==='list';
+  $('fPerson').value = on ? '' : BOSS(); setView(on ? 'cal' : 'list'); render();
+}
+function syncHash(){
+  const p=fPerson(), q=new URLSearchParams(); if(p) q.set('p',p); if(S.view!=='cal') q.set('v',S.view);
+  const h=q.toString(); if(('#'+h)!==location.hash && (h||location.hash)) history.replaceState(null,'',h?'#'+h:location.pathname+location.search);
+  $('bossBtn').classList.toggle('on', p===BOSS() && S.view==='list');
+}
+function readHash(){
+  const q=new URLSearchParams(location.hash.slice(1));
+  if(q.get('p') && S.staff.includes(q.get('p'))) $('fPerson').value=q.get('p');
+  if(['cal','list','duty','stat'].includes(q.get('v'))) setView(q.get('v'));
+}
 function listHTML(){
   const days = eachDay(ymd(new Date(S.y,S.m,1)), ymd(new Date(S.y,S.m+1,0)));
+  const p = fPerson();
   let h = '';
+  if(p){
+    const mf=days[0], mt=days[days.length-1];
+    const nEv = S.events.filter(e=>evVisible(e) && overlap(e.開始日,e.結束日,mf,mt)).length;
+    const nLv = S.leaves.filter(l=>lvVisible(l) && overlap(l.開始日,l.結束日,mf,mt)).reduce((a,l)=>a+leaveDays(l,mf,mt),0);
+    const nDu = Object.entries(mergedDuty()).filter(([d,x])=>x===p && d>=mf && d<=mt).length;
+    h += `<div class="lhead"><h3>${p===BOSS()?'👔 ':''}${esc(p)}・${S.y} 年 ${S.m+1} 月行程<small>行程 ${nEv} 筆${nLv?`・休假 ${Math.round(nLv*10)/10} 天`:''}${nDu?`・假日業績班 ${nDu} 天`:''}</small></h3>
+      <button class="btn ghost" onclick="window.print()">🖨 列印</button></div>`;
+  }
+  let any=false;
   for(const ds of days){
     const r = rowsFor(ds), hs = holOn(ds);
-    if(!r && !hs.length) continue;
+    if(!r && (p || !hs.length)) continue;
+    any=true;
     h += `<div class="lday"><h4>${md(ds)}${hs.length?'<small>'+esc(hs.map(x=>x.name).join('、'))+'</small>':''}</h4>${r}</div>`;
   }
-  return '<div class="panel">'+(h||'<div class="empty">這個月還沒有行程或休假</div>')+'</div>';
+  return '<div class="panel">'+h+(any?'':'<div class="empty">這個月還沒有行程或休假</div>')+'</div>';
 }
 
 function leaveDays(l, from, to){
@@ -971,7 +1007,7 @@ document.addEventListener('paste', e=>{
 });
 
 /* ---------- 事件綁定 ---------- */
-$('tabs').onclick = e=>{ const v=e.target.dataset.v; if(!v) return; S.view=v; [...$('tabs').children].forEach(b=>b.classList.toggle('on',b.dataset.v===v)); render(); };
+$('tabs').onclick = e=>{ const v=e.target.dataset.v; if(!v) return; setView(v); render(); };
 ['fPerson','fEv','fLv','fDu'].forEach(id=>$(id).onchange=render);
 $('e_allday').onchange = ()=>{ $('e_times').hidden = $('e_allday').checked; };
 $('e_s').onchange = ()=>{ eFollow(); checkEventConflict(); };
@@ -994,7 +1030,7 @@ let rw; addEventListener('resize',()=>{ clearTimeout(rw); rw=setTimeout(()=>S.vi
 (async()=>{
   $('demo').hidden = !!API_URL;
   const t=new Date(); S.y=t.getFullYear(); S.m=t.getMonth();
-  await loadAll(); render();
+  await loadAll(); readHash(); render();
 })();
 </script>
 </body>
