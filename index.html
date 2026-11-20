@@ -133,6 +133,7 @@ td:first-child,th:first-child{text-align:left}
 .lhead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 0 6px;border-bottom:2px solid var(--line)}
 .lhead h3{margin:0;font-size:17px;flex:1}
 .mhead{margin:16px 0 0;padding:6px 10px;background:#eef3f1;border-radius:8px;font-weight:700;color:var(--accent);font-size:14px}
+.gen{font-size:11px;background:#eef0ec;color:#5b6660;border-radius:10px;padding:0 6px;margin-right:5px;white-space:nowrap}
 .tg{background:var(--accent);color:#fff;border-radius:6px;padding:0 6px;font-size:12px;margin-right:6px}
 /* 行事曆圖 */
 .pgrid{width:1120px;background:#fff;color:#222;padding:22px 24px;font-family:-apple-system,"PingFang TC","Microsoft JhengHei","Noto Sans TC",sans-serif}
@@ -256,7 +257,7 @@ td:first-child,th:first-child{text-align:left}
       <div class="f"><label>結束時間</label><input type="time" id="e_te"></div>
     </div>
     <div class="f"><label>地點</label><input id="e_loc" placeholder="例：總部會議室／凱旋店"></div>
-    <div class="f"><label>參與人</label><div class="pills" id="e_who"></div><div class="hint" id="e_allhint" hidden>📢 會議會出現在每個人的行程裡，參與人可以不勾</div></div>
+    <div class="f"><label>參與人</label><div class="pills" id="e_who"></div><div class="hint" id="e_allhint" hidden></div></div>
     <div class="alert" id="e_alert"></div>
     <div class="f"><label>備註</label><textarea id="e_note"></textarea></div>
     <div class="f"><label>登記人 *</label><select id="e_by"></select></div>
@@ -484,8 +485,12 @@ const DEMO = (()=>{
 
 /* ---------- 篩選、整理 ---------- */
 function fPerson(){ return document.getElementById('fPerson').value; }
-const ALL_CATS = ['會議'];   // 這些類別＝全部的人都要知道，每個人的行程都會顯示
-function evFor(e,p){ return ALL_CATS.includes(e.類別) || (e.參與人||'').split(/[、,，]/).includes(p) || e.建立人===p; }
+const ALL_CATS = ['會議','公司活動'];   // 這些類別＝全部的人都要知道，每個人的行程都會顯示
+// 沒勾參與人＝全部的人；會議、公司活動也一律全員
+function evFor(e,p){ const ppl=(e.參與人||'').split(/[、,，]/).filter(Boolean); return ALL_CATS.includes(e.類別) || !ppl.length || ppl.includes(p) || e.建立人===p; }
+// 選了某人時：這筆是「全員知道」而不是他自己要參加的 → 標 👥 全員
+function isGeneral(e,p){ if(!p) return false; const ppl=(e.參與人||'').split(/[、,，]/).filter(Boolean); return !ppl.includes(p) && e.建立人!==p; }
+const GEN_TAG = '<span class="gen">👥 全員</span>';
 function evVisible(e){ const p=fPerson(); return document.getElementById('fEv').checked && (!p || evFor(e,p)); }
 function lvVisible(l){ const p=fPerson(); return document.getElementById('fLv').checked && (!p || l.人員===p); }
 
@@ -574,7 +579,7 @@ function rowsFor(ds, first){
   return (dutyVisible(du)?`<div class="row" onclick="openDay('${ds}')"><span class="t">假日業績班</span><span class="tag" style="background:#dff0f3;color:#134e5a">📊 輪班</span><span>${esc(du)}</span></div>`:'')
    + lv.map(l=>`<div class="row" onclick="showLeave('${l.id}')"><span class="t">休假</span><span class="tag" style="background:#fdf1d6;color:#5a4209">${esc(l.假別)}</span><span>${esc(l.人員)}${l.時段&&l.時段!=='全天'?'（'+esc(l.時段)+'）':''}${rng(l)}${l.代理人?' <small style="color:var(--sub)">代理：'+esc(l.代理人)+'</small>':''}</span></div>`).join('')
    + ev.map(e=>{ const c=catColor(e.類別);
-      return `<div class="row" onclick="showEvent('${e.id}')"><span class="t">${esc(evTime(e))}</span><span class="tag" style="background:${c}1f;color:${c}">${esc(e.類別||'其他')}</span><span>${esc(e.標題)}${rng(e)}${e.地點?' <small style="color:var(--sub)">@'+esc(e.地點)+'</small>':''}</span></div>`; }).join('');
+      return `<div class="row" onclick="showEvent('${e.id}')"><span class="t">${esc(evTime(e))}</span><span class="tag" style="background:${c}1f;color:${c}">${esc(e.類別||'其他')}</span><span>${isGeneral(e,fPerson())?GEN_TAG:''}${esc(e.標題)}${rng(e)}${e.地點?' <small style="color:var(--sub)">@'+esc(e.地點)+'</small>':''}</span></div>`; }).join('');
 }
 
 const BOSS = () => S.staff.includes('老闆') ? '老闆' : (S.staff[0]||'');
@@ -784,13 +789,13 @@ function gridHTML(y,m,p){
       S.leaves.filter(l=>lvOk(l)&&ds>=l.開始日&&ds<=l.結束日).forEach(l=>c+=`<div class="pi" style="background:#fdf1d6;border-color:#e0a526">🌴 ${esc(lvLabel(l))}</div>`);
       S.events.filter(e=>evOk(e)&&ds>=e.開始日&&ds<=e.結束日).sort((a,b)=>(a.開始時間||'').localeCompare(b.開始時間||'')).forEach(e=>{
         const col=catColor(e.類別);
-        c+=`<div class="pi" style="background:${col}14;border-color:${col}">${e.開始時間?'<b>'+esc(e.開始時間)+'</b> ':''}${esc(e.標題)}${e.地點?'<br><span style="color:#777">@'+esc(e.地點)+'</span>':''}</div>`;
+        c+=`<div class="pi" style="background:${col}14;border-color:${col}">${isGeneral(e,p)?'👥 ':''}${e.開始時間?'<b>'+esc(e.開始時間)+'</b> ':''}${esc(e.標題)}${e.地點?'<br><span style="color:#777">@'+esc(e.地點)+'</span>':''}</div>`;
       });
     }
     h+=`<td class="${out?'out':''} ${off&&!out?'hol':''}"><div class="pd" style="${!out&&(d.getDay()%6===0||off)?'color:#c0392b':''}">${d.getDate()}${hs.length&&!out?'<small>'+esc(hs.map(x=>x.name).join('、'))+'</small>':''}</div>${c}</td>`;
     if(i%7===6) h+='</tr>';
   });
-  return h+'</table><div class="pfoot">emotwm.github.io/cal</div></div>';
+  return h+`</table><div class="pfoot">${p?'👥＝全員都要知道的行程（不一定要出席）・':''}emotwm.github.io/cal</div></div>`;
 }
 function prSel(){ const [y,m]=$('pr_m').value.split('-').map(Number); return {y,m,p:$('pr_p').value}; }
 async function previewPrint(){
@@ -879,15 +884,20 @@ function openEvent(id, ds, pre){
   checkEventConflict();
   openM('mEvent'); setTimeout(()=>!e&&$('e_title').focus(),50);
 }
-function catHint(){ const c=(document.querySelector('input[name=e_cat]:checked')||{}).value; $('e_allhint').hidden=!ALL_CATS.includes(c); }
+function catHint(){
+  const c=(document.querySelector('input[name=e_cat]:checked')||{}).value, n=$('e_who').querySelectorAll('input:checked').length;
+  const t = ALL_CATS.includes(c) ? '📢 '+c+'會出現在每個人的行程裡' : (!n ? '📢 沒勾參與人＝全部的人都會看到；私人行程請勾自己' : '');
+  $('e_allhint').textContent=t; $('e_allhint').hidden=!t;
+}
 function checkEventConflict(){
   catHint();
   const s=$('e_s').value, e=$('e_e').value||s;
   const who=[...$('e_who').querySelectorAll('input:checked')].map(x=>x.value);
   const c=(document.querySelector('input[name=e_cat]:checked')||{}).value;
-  const hits = S.leaves.filter(l=>(ALL_CATS.includes(c)||who.includes(l.人員)) && overlap(l.開始日,l.結束日,s,e));
+  const all = ALL_CATS.includes(c) || !who.length;
+  const hits = S.leaves.filter(l=>(all||who.includes(l.人員)) && overlap(l.開始日,l.結束日,s,e));
   const a=$('e_alert'); a.classList.toggle('on',hits.length>0);
-  a.innerHTML = hits.length ? (ALL_CATS.includes(c)?'⚠ 那段時間有人休假：':'⚠ 參與人那段時間有休假：')+hits.map(l=>esc(l.人員)+' '+md(l.開始日)+(l.結束日!==l.開始日?'～'+md(l.結束日):'')+' '+esc(l.假別)).join('；') : '';
+  a.innerHTML = hits.length ? (all?'⚠ 那段時間有人休假：':'⚠ 參與人那段時間有休假：')+hits.map(l=>esc(l.人員)+' '+md(l.開始日)+(l.結束日!==l.開始日?'～'+md(l.結束日):'')+' '+esc(l.假別)).join('；') : '';
 }
 async function saveEvent(){
   const s=$('e_s').value; let e=$('e_e').value||s;
