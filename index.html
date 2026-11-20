@@ -48,6 +48,9 @@ header .sp{flex:1}
 .day{min-height:112px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:5px;cursor:pointer;position:relative;min-width:0}
 .day:nth-child(7n){border-right:0}
 .day:hover{background:#faf8f2}
+.day.hol:hover{background:#f8e2df}
+.day.hol .dn b{color:var(--red)}
+.day.today.hol .dn b{color:#fff}
 .day.out{background:#f8f6f0;color:#b5b8b2}
 .day.out .item{opacity:.55}
 .day.hol{background:var(--redbg)}
@@ -561,7 +564,7 @@ function calHTML(){
   let h = '<div class="cal"><div class="wk">'+WEEK.map(w=>`<div>${w}</div>`).join('')+'</div><div class="grid">';
   for(const ds of days){
     const d = parse(ds), hs = holOn(ds), off = hs.some(x=>x.off), {lv,ev} = itemsOn(ds);
-    const cls = ['day', d.getMonth()!==S.m?'out':'', ds===t?'today':'', off?'hol':'', (d.getDay()%6===0)?'wkend':''].join(' ');
+    const cls = ['day', d.getMonth()!==S.m?'out':'', ds===t?'today':'', isOffDay(ds)&&d.getMonth()===S.m?'hol':'', (d.getDay()%6===0)?'wkend':''].join(' ');
     const hn = hs.length ? `<span class="hn ${off?'':'obs'}">${esc(hs.map(x=>x.name).join('、'))}</span>` : '';
     const du = dutyOn(ds);
     const chips = [
@@ -797,7 +800,7 @@ function gridHTML(y,m,p){
         c+=`<div class="pi" style="background:${col}26;border-color:${col};color:${col}">${isGeneral(e,p)?'👥 ':''}${e.開始時間?'<b>'+esc(e.開始時間)+'</b> ':''}${esc(e.標題)}${e.地點?'<br><span style="color:#777">@'+esc(e.地點)+'</span>':''}</div>`;
       });
     }
-    h+=`<td class="${out?'out':''} ${off&&!out?'hol':''}"><div class="pd" style="${!out&&(d.getDay()%6===0||off)?'color:#c0392b':''}">${d.getDate()}${hs.length&&!out?'<small>'+esc(hs.map(x=>x.name).join('、'))+'</small>':''}</div>${c}</td>`;
+    h+=`<td class="${out?'out':''} ${!out&&isOffDay(ds)?'hol':''}"><div class="pd" style="${!out&&isOffDay(ds)?'color:#c0392b':''}">${d.getDate()}${hs.length&&!out?'<small>'+esc(hs.map(x=>x.name).join('、'))+'</small>':''}</div>${c}</td>`;
     if(i%7===6) h+='</tr>';
   });
   return h+`</table><div class="pfoot">${p?'👥＝全員都要知道的行程（不一定要出席）・':''}emotwm.github.io/cal</div></div>`;
