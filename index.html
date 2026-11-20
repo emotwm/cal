@@ -234,7 +234,6 @@ td:first-child,th:first-child{text-align:left}
       <button data-v="cal" class="on">月曆</button>
       <button data-v="list">清單</button>
       <button data-v="duty">假日輪班</button>
-      <button data-v="stat">休假統計</button>
     </div>
     <button class="bossbtn" id="bossBtn" onclick="toggleBoss()">👔 老闆行程</button>
     <span class="sp"></span>
@@ -602,7 +601,7 @@ function syncHash(){
 function readHash(){
   const q=new URLSearchParams(location.hash.slice(1));
   if(q.get('p') && S.staff.includes(q.get('p'))) $('fPerson').value=q.get('p');
-  if(['cal','list','duty','stat'].includes(q.get('v'))) setView(q.get('v'));
+  if(['cal','list','duty'].includes(q.get('v'))) setView(q.get('v'));
 }
 function listHTML(){
   const p = fPerson(), t = todayStr();
