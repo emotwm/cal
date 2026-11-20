@@ -427,21 +427,36 @@ async function api(method, payload){
   return r.json();
 }
 
-async function loadAll(){
-  busy(true);
+/* 先用上次存在這台裝置的資料畫出來，背景再抓最新的 */
+const CACHE_KEY = 'ymtoday_cache_v1';
+function applyData(r){
+  S.staff = r.staff||[]; S.events = r.events||[]; S.leaves = r.leaves||[];
+  S.dutyStaff = r.dutyStaff || []; S.duties = r.duties || [];
+  if(r.hol) Object.keys(r.hol).forEach(y=>{ if(Array.isArray(r.hol[y])) S.hol[y]=r.hol[y]; });
+  fillStaff();
+}
+function saveCache(){
+  if(!API_URL) return;
+  try{ localStorage.setItem(CACHE_KEY, JSON.stringify({t:Date.now(), staff:S.staff, dutyStaff:S.dutyStaff, events:S.events, leaves:S.leaves, duties:S.duties, hol:S.hol})); }catch(e){}
+}
+function loadCache(){
+  if(!API_URL) return false;
+  try{ const c=JSON.parse(localStorage.getItem(CACHE_KEY)||'null'); if(!c||!c.staff) return false; applyData(c); return true; }catch(e){ return false; }
+}
+async function loadAll(quiet){
+  if(!quiet) busy(true);
   try{
     const r = await api('GET',{action:'all'});
     if(!r.ok) throw r.error;
-    S.staff = r.staff; S.events = r.events; S.leaves = r.leaves;
-    S.dutyStaff = r.dutyStaff || []; S.duties = r.duties || [];
-    fillStaff();
+    applyData(r); saveCache();
   }catch(e){ toast('讀取失敗：'+e); }
   busy(false);
 }
-async function ensureHolidays(y){
-  if(S.hol[y]) return;
-  S.hol[y] = [];
-  try{ const r = await api('GET',{action:'holidays',year:y}); if(r.ok) S.hol[y]=r.list; }catch(e){}
+const holLoading = {};
+function ensureHolidays(y){
+  if(S.hol[y] || holLoading[y]) return;
+  holLoading[y] = true;
+  api('GET',{action:'holidays',year:y}).then(r=>{ if(r.ok){ S.hol[y]=r.list; saveCache(); render(); } }).catch(()=>{}).finally(()=>{ holLoading[y]=false; });
 }
 
 /* ---------- 示範模式 ---------- */
@@ -546,7 +561,7 @@ async function render(){
   document.querySelector('.nav').style.visibility = S.view==='list' ? 'hidden' : '';
   $('soon').innerHTML = soonHTML();
   document.getElementById('mLabel').textContent = S.y+' 年 '+(S.m+1)+' 月';
-  await Promise.all([ensureHolidays(S.y), ensureHolidays(S.m===0?S.y-1:S.y), ensureHolidays(S.m===11?S.y+1:S.y)]);
+  [S.y, S.m===0?S.y-1:S.y, S.m===11?S.y+1:S.y].forEach(ensureHolidays); // 沒有的年份背景抓，不擋畫面
   const v = document.getElementById('view');
   if(S.view==='cal') v.innerHTML = calHTML();
   else if(S.view==='list') v.innerHTML = listHTML();
@@ -719,7 +734,7 @@ async function saveDutyNow(changes){
   try{
     const r = await api('POST',{action:'saveDuty',changes});
     if(!r.ok) throw r.error;
-    S.duties = r.duties; toast('已儲存'); busy(false); render(); return true;
+    S.duties = r.duties; toast('已儲存'); busy(false); render(); saveCache(); return true;
   }catch(e){ toast('儲存失敗：'+e); busy(false); return false; }
 }
 function openAutoDuty(){
@@ -998,7 +1013,7 @@ async function save(action, data, modal, btnId, list){
     if(!r.ok) throw r.error;
     if(API_URL){ const i=list.findIndex(x=>x.id===r.item.id); if(i>=0) list[i]=r.item; else list.push(r.item); }
     const qi=S.qaFrom; S.qaFrom=null;
-    closeM(modal); toast('已儲存'); render();
+    closeM(modal); toast('已儲存'); render(); saveCache();
     if(qi!=null){ QA.items.splice(qi,1); renderQA(); if(QA.items.length) openM('mQA'); else resetQA(); }
   }catch(e){ toast('儲存失敗：'+e); }
   b.disabled=false;
@@ -1009,7 +1024,7 @@ async function remove(action, id, modal, list){
     const r = await api('POST',{action,id});
     if(!r.ok) throw r.error || '找不到這筆資料';
     if(API_URL){ const i=list.findIndex(x=>x.id===id); if(i>=0) list.splice(i,1); }
-    closeM(modal); toast('已刪除'); render();
+    closeM(modal); toast('已刪除'); render(); saveCache();
   }catch(e){ toast('刪除失敗：'+e); }
   busy(false);
 }
@@ -1177,7 +1192,8 @@ let rw; addEventListener('resize',()=>{ clearTimeout(rw); rw=setTimeout(()=>S.vi
 (async()=>{
   $('demo').hidden = !!API_URL;
   const t=new Date(); S.y=t.getFullYear(); S.m=t.getMonth();
-  await loadAll(); readHash(); render();
+  if(loadCache()){ readHash(); render(); await loadAll(true); render(); }   // 有舊資料：先秀，背景更新
+  else { await loadAll(); readHash(); render(); }
 })();
 </script>
 </body>
