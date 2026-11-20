@@ -132,8 +132,36 @@ td:first-child,th:first-child{text-align:left}
 .bossbtn.on{background:#5a3e1b;color:#fff;border-color:#5a3e1b}
 .lhead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 0 6px;border-bottom:2px solid var(--line)}
 .lhead h3{margin:0;font-size:17px;flex:1}
+.mhead{margin:16px 0 0;padding:6px 10px;background:#eef3f1;border-radius:8px;font-weight:700;color:var(--accent);font-size:14px}
+.tg{background:var(--accent);color:#fff;border-radius:6px;padding:0 6px;font-size:12px;margin-right:6px}
+/* 行事曆圖 */
+.pgrid{width:1120px;background:#fff;color:#222;padding:22px 24px;font-family:-apple-system,"PingFang TC","Microsoft JhengHei","Noto Sans TC",sans-serif}
+.pgrid h2{margin:0 0 4px;font-size:24px;font-family:"Noto Serif TC","PMingLiU",serif;letter-spacing:1px}
+.pgrid .psub{color:#777;font-size:13px;margin-bottom:12px}
+.pgrid table{border-collapse:collapse;width:100%;table-layout:fixed}
+.pgrid th{background:#1f6f5c;color:#fff;font-size:14px;padding:6px;border:1px solid #1f6f5c}
+.pgrid th.we{background:#a33}
+.pgrid td{border:1px solid #ccc;vertical-align:top;height:118px;padding:4px 5px;text-align:left}
+.pgrid td.out{background:#f4f4f4;color:#bbb}
+.pgrid td.hol{background:#fdf0ef}
+.pgrid .pd{font-weight:700;font-size:15px}
+.pgrid .pd small{color:#c0392b;font-weight:500;font-size:11px;margin-left:4px}
+.pgrid .pi{font-size:12px;line-height:1.35;margin-top:3px;padding:1px 4px;border-radius:4px;border-left:3px solid;overflow:hidden;word-break:break-all}
+.pgrid .pi b{font-weight:700}
+.pgrid .pfoot{margin-top:8px;font-size:11px;color:#999;text-align:right}
+.pwrap{overflow:auto;border:1px solid var(--line);border-radius:10px;max-height:56vh;background:#fff}
+.pwrap .pgrid{transform-origin:0 0}
+#printArea{display:none}
+@media print{
+  @page{size:A4 landscape;margin:8mm}
+  body.printing>*:not(#printArea){display:none!important}
+  body.printing #printArea{display:block}
+  body.printing .pgrid{width:100%;padding:0}
+  body.printing .pgrid td{height:96px}
+  body.printing{background:#fff}
+}
 .lhead small{color:var(--sub);font-weight:400;display:block;font-size:13px;margin-top:3px}
-@media print{header,.bar,#soon,.demo,.legend,.lhead button,.toast{display:none!important}body{background:#fff}.panel{border:0;padding:0}.row{break-inside:avoid}}
+
 .hbtn.ai{background:#fff;color:#7a4fb3}
 .qa-tools{display:flex;gap:8px;margin-top:8px}
 .qa-tools .btn{flex:1;display:flex;align-items:center;justify-content:center;gap:6px}
@@ -228,7 +256,7 @@ td:first-child,th:first-child{text-align:left}
       <div class="f"><label>結束時間</label><input type="time" id="e_te"></div>
     </div>
     <div class="f"><label>地點</label><input id="e_loc" placeholder="例：總部會議室／凱旋店"></div>
-    <div class="f"><label>參與人</label><div class="pills" id="e_who"></div></div>
+    <div class="f"><label>參與人</label><div class="pills" id="e_who"></div><div class="hint" id="e_allhint" hidden>📢 會議會出現在每個人的行程裡，參與人可以不勾</div></div>
     <div class="alert" id="e_alert"></div>
     <div class="f"><label>備註</label><textarea id="e_note"></textarea></div>
     <div class="f"><label>登記人 *</label><select id="e_by"></select></div>
@@ -330,6 +358,24 @@ td:first-child,th:first-child{text-align:left}
   </div>
   <div class="mf"><span class="sp"></span><button class="btn ghost" onclick="closeM('mDuty')">取消</button><button class="btn" onclick="autoDuty()">排班</button></div>
 </div></div>
+
+<!-- 行事曆圖 -->
+<div class="mask" id="mPrint"><div class="modal" style="max-width:860px">
+  <div class="mh"><h3>🗓 行事曆圖</h3><button class="x" onclick="closeM('mPrint')">×</button></div>
+  <div class="mb">
+    <div class="two">
+      <div class="f"><label>月份</label><select id="pr_m"></select></div>
+      <div class="f"><label>誰的行程</label><select id="pr_p"></select></div>
+    </div>
+    <div class="pwrap" id="pr_prev"></div>
+    <div class="hint">列印時紙張選「橫向」；要存成 PDF，印表機選「另存為 PDF」。圖片可以直接傳 LINE。</div>
+  </div>
+  <div class="mf"><span class="sp"></span>
+    <button class="btn ghost" id="pr_img" onclick="saveImg()">🖼 下載圖片</button>
+    <button class="btn" onclick="doPrint()">🖨 列印／存 PDF</button>
+  </div>
+</div></div>
+<div id="printArea"></div>
 
 <div class="loading" id="loading">讀取中…</div>
 <div class="toast" id="toast"></div>
@@ -438,7 +484,9 @@ const DEMO = (()=>{
 
 /* ---------- 篩選、整理 ---------- */
 function fPerson(){ return document.getElementById('fPerson').value; }
-function evVisible(e){ const p=fPerson(); return document.getElementById('fEv').checked && (!p || (e.參與人||'').split(/[、,，]/).includes(p) || e.建立人===p); }
+const ALL_CATS = ['會議'];   // 這些類別＝全部的人都要知道，每個人的行程都會顯示
+function evFor(e,p){ return ALL_CATS.includes(e.類別) || (e.參與人||'').split(/[、,，]/).includes(p) || e.建立人===p; }
+function evVisible(e){ const p=fPerson(); return document.getElementById('fEv').checked && (!p || evFor(e,p)); }
 function lvVisible(l){ const p=fPerson(); return document.getElementById('fLv').checked && (!p || l.人員===p); }
 
 function holOn(ds){
@@ -482,6 +530,7 @@ function soonHTML(){
 }
 async function render(){
   syncHash();
+  document.querySelector('.nav').style.visibility = S.view==='list' ? 'hidden' : '';
   $('soon').innerHTML = soonHTML();
   document.getElementById('mLabel').textContent = S.y+' 年 '+(S.m+1)+' 月';
   await Promise.all([ensureHolidays(S.y), ensureHolidays(S.m===0?S.y-1:S.y), ensureHolidays(S.m===11?S.y+1:S.y)]);
@@ -517,12 +566,15 @@ function calHTML(){
   return h+'</div></div>';
 }
 
-function rowsFor(ds){
-  const {lv,ev} = itemsOn(ds), du = dutyOn(ds);
+function rowsFor(ds, first){
+  // first＝清單用：跨天的行程／休假只在開始那天（或今天）列一次，並標出期間
+  let {lv,ev} = itemsOn(ds); const du = dutyOn(ds);
+  if(first){ const keep = x => x.開始日===ds || (ds===first && x.開始日<ds); lv=lv.filter(keep); ev=ev.filter(keep); }
+  const rng = x => x.開始日!==x.結束日 ? ` <small style="color:var(--sub)">（${md(x.開始日)}～${md(x.結束日)}）</small>` : '';
   return (dutyVisible(du)?`<div class="row" onclick="openDay('${ds}')"><span class="t">假日業績班</span><span class="tag" style="background:#dff0f3;color:#134e5a">📊 輪班</span><span>${esc(du)}</span></div>`:'')
-   + lv.map(l=>`<div class="row" onclick="showLeave('${l.id}')"><span class="t">休假</span><span class="tag" style="background:#fdf1d6;color:#5a4209">${esc(l.假別)}</span><span>${esc(l.人員)}${l.時段&&l.時段!=='全天'?'（'+esc(l.時段)+'）':''}${l.代理人?' <small style="color:var(--sub)">代理：'+esc(l.代理人)+'</small>':''}</span></div>`).join('')
+   + lv.map(l=>`<div class="row" onclick="showLeave('${l.id}')"><span class="t">休假</span><span class="tag" style="background:#fdf1d6;color:#5a4209">${esc(l.假別)}</span><span>${esc(l.人員)}${l.時段&&l.時段!=='全天'?'（'+esc(l.時段)+'）':''}${rng(l)}${l.代理人?' <small style="color:var(--sub)">代理：'+esc(l.代理人)+'</small>':''}</span></div>`).join('')
    + ev.map(e=>{ const c=catColor(e.類別);
-      return `<div class="row" onclick="showEvent('${e.id}')"><span class="t">${esc(evTime(e))}</span><span class="tag" style="background:${c}1f;color:${c}">${esc(e.類別||'其他')}</span><span>${esc(e.標題)}${e.地點?' <small style="color:var(--sub)">@'+esc(e.地點)+'</small>':''}</span></div>`; }).join('');
+      return `<div class="row" onclick="showEvent('${e.id}')"><span class="t">${esc(evTime(e))}</span><span class="tag" style="background:${c}1f;color:${c}">${esc(e.類別||'其他')}</span><span>${esc(e.標題)}${rng(e)}${e.地點?' <small style="color:var(--sub)">@'+esc(e.地點)+'</small>':''}</span></div>`; }).join('');
 }
 
 const BOSS = () => S.staff.includes('老闆') ? '老闆' : (S.staff[0]||'');
@@ -542,25 +594,28 @@ function readHash(){
   if(['cal','list','duty','stat'].includes(q.get('v'))) setView(q.get('v'));
 }
 function listHTML(){
-  const days = eachDay(ymd(new Date(S.y,S.m,1)), ymd(new Date(S.y,S.m+1,0)));
-  const p = fPerson();
-  let h = '';
-  if(p){
-    const mf=days[0], mt=days[days.length-1];
-    const nEv = S.events.filter(e=>evVisible(e) && overlap(e.開始日,e.結束日,mf,mt)).length;
-    const nLv = S.leaves.filter(l=>lvVisible(l) && overlap(l.開始日,l.結束日,mf,mt)).reduce((a,l)=>a+leaveDays(l,mf,mt),0);
-    const nDu = Object.entries(mergedDuty()).filter(([d,x])=>x===p && d>=mf && d<=mt).length;
-    h += `<div class="lhead"><h3>${p===BOSS()?'👔 ':''}${esc(p)}・${S.y} 年 ${S.m+1} 月行程<small>行程 ${nEv} 筆${nLv?`・休假 ${Math.round(nLv*10)/10} 天`:''}${nDu?`・假日業績班 ${nDu} 天`:''}</small></h3>
-      <button class="btn ghost" onclick="window.print()">🖨 列印</button></div>`;
-  }
-  let any=false;
-  for(const ds of days){
-    const r = rowsFor(ds), hs = holOn(ds);
-    if(!r && (p || !hs.length)) continue;
+  const p = fPerson(), t = todayStr();
+  let last = t;
+  S.events.forEach(e=>{ if(evVisible(e) && e.結束日>last) last=e.結束日; });
+  S.leaves.forEach(l=>{ if(lvVisible(l) && l.結束日>last) last=l.結束日; });
+  const dm = mergedDuty();
+  Object.keys(dm).forEach(d=>{ if(dutyVisible(dm[d]) && d>last) last=d; });
+  const nEv = S.events.filter(e=>evVisible(e) && e.結束日>=t).length;
+  const nLv = S.leaves.filter(l=>lvVisible(l) && l.結束日>=t).reduce((a,l)=>a+leaveDays(l,t,'9999-12-31'),0);
+  const nDu = Object.keys(dm).filter(d=>d>=t && dutyVisible(dm[d])).length;
+  let h = `<div class="lhead"><h3>${p===BOSS()?'👔 ':''}${p?esc(p)+'・':''}接下來的行程<small>從今天 ${md(t)} 起：行程 ${nEv} 筆${nLv?`・休假 ${Math.round(nLv*10)/10} 天`:''}${nDu?`・假日業績班 ${nDu} 天`:''}</small></h3>
+    <button class="btn ghost" onclick="openPrint()">🗓 行事曆圖</button></div>`;
+  let any=false, curM='';
+  for(const ds of eachDay(t,last)){
+    const r = rowsFor(ds, t);
+    if(!r) continue;
+    const mk = ds.slice(0,7);
+    if(mk!==curM){ curM=mk; h += `<div class="mhead">${+mk.slice(0,4)} 年 ${+mk.slice(5)} 月</div>`; }
+    const hs = holOn(ds);
     any=true;
-    h += `<div class="lday"><h4>${md(ds)}${hs.length?'<small>'+esc(hs.map(x=>x.name).join('、'))+'</small>':''}</h4>${r}</div>`;
+    h += `<div class="lday"><h4>${ds===t?'<span class="tg">今天</span>':''}${md(ds)}${hs.length?'<small>'+esc(hs.map(x=>x.name).join('、'))+'</small>':''}</h4>${r}</div>`;
   }
-  return '<div class="panel">'+h+(any?'':'<div class="empty">這個月還沒有行程或休假</div>')+'</div>';
+  return '<div class="panel">'+h+(any?'':'<div class="empty">接下來沒有行程或休假</div>')+'</div>';
 }
 
 function leaveDays(l, from, to){
@@ -700,6 +755,76 @@ function autoDuty(){
 }
 addEventListener('beforeunload', e=>{ if(Object.keys(DUTY.pending).length){ e.preventDefault(); e.returnValue=''; } });
 
+/* ---------- 行事曆圖（列印／圖片） ---------- */
+function openPrint(){
+  const t=new Date(); let opts='';
+  for(let i=0;i<12;i++){ const d=new Date(t.getFullYear(), t.getMonth()+i, 1); opts+=`<option value="${d.getFullYear()}-${d.getMonth()}">${d.getFullYear()} 年 ${d.getMonth()+1} 月</option>`; }
+  $('pr_m').innerHTML = opts;
+  // 預設：接下來第一筆行程所在的月份
+  const p=fPerson(), now=todayStr();
+  const next = S.events.filter(e=>(!p||evFor(e,p)) && e.結束日>=now).map(e=>e.開始日<now?now:e.開始日).sort()[0];
+  if(next){ const v=+next.slice(0,4)+'-'+(+next.slice(5,7)-1); if([...$('pr_m').options].some(o=>o.value===v)) $('pr_m').value=v; }
+  $('pr_p').innerHTML = '<option value="">全部人員</option>'+S.staff.map(x=>`<option ${x===p?'selected':''}>${esc(x)}</option>`).join('');
+  previewPrint(); openM('mPrint');
+}
+function gridHTML(y,m,p){
+  const first=new Date(y,m,1), start=new Date(first); start.setDate(1-first.getDay());
+  const last=new Date(y,m+1,0), end=new Date(last); end.setDate(last.getDate()+(6-last.getDay()));
+  const days=eachDay(ymd(start),ymd(end));
+  const evOk=e=>!p||evFor(e,p), lvOk=l=>!p||l.人員===p;
+  let h=`<div class="pgrid"><h2>${p===BOSS()?'👔 ':''}${p?esc(p)+' ':'倚盟總部 '}${y} 年 ${m+1} 月行事曆</h2><div class="psub">倚盟總部行事曆・${new Date().toLocaleDateString('zh-TW')} 製表</div><table><tr>`
+    + WEEK.map((w,i)=>`<th class="${i%6===0?'we':''}">${w}</th>`).join('')+'</tr>';
+  days.forEach((ds,i)=>{
+    if(i%7===0) h+='<tr>';
+    const d=parse(ds), out=d.getMonth()!==m, hs=holOn(ds), off=hs.some(x=>x.off);
+    let c='';
+    if(!out){
+      const du=dutyOn(ds);
+      if(du && (!p||du===p)) c+=`<div class="pi" style="background:#dff0f3;border-color:#1f7a8c">📊 業績班 <b>${esc(du)}</b></div>`;
+      S.leaves.filter(l=>lvOk(l)&&ds>=l.開始日&&ds<=l.結束日).forEach(l=>c+=`<div class="pi" style="background:#fdf1d6;border-color:#e0a526">🌴 ${esc(lvLabel(l))}</div>`);
+      S.events.filter(e=>evOk(e)&&ds>=e.開始日&&ds<=e.結束日).sort((a,b)=>(a.開始時間||'').localeCompare(b.開始時間||'')).forEach(e=>{
+        const col=catColor(e.類別);
+        c+=`<div class="pi" style="background:${col}14;border-color:${col}">${e.開始時間?'<b>'+esc(e.開始時間)+'</b> ':''}${esc(e.標題)}${e.地點?'<br><span style="color:#777">@'+esc(e.地點)+'</span>':''}</div>`;
+      });
+    }
+    h+=`<td class="${out?'out':''} ${off&&!out?'hol':''}"><div class="pd" style="${!out&&(d.getDay()%6===0||off)?'color:#c0392b':''}">${d.getDate()}${hs.length&&!out?'<small>'+esc(hs.map(x=>x.name).join('、'))+'</small>':''}</div>${c}</td>`;
+    if(i%7===6) h+='</tr>';
+  });
+  return h+'</table><div class="pfoot">emotwm.github.io/cal</div></div>';
+}
+function prSel(){ const [y,m]=$('pr_m').value.split('-').map(Number); return {y,m,p:$('pr_p').value}; }
+async function previewPrint(){
+  const {y,m,p}=prSel(); await ensureHolidays(y);
+  const box=$('pr_prev'); box.innerHTML=gridHTML(y,m,p);
+  const g=box.querySelector('.pgrid'), k=Math.min(1,(box.clientWidth-2)/1120);
+  g.style.transform=`scale(${k})`; box.style.height=(g.offsetHeight*k+4)+'px';
+}
+function doPrint(){
+  const {y,m,p}=prSel(); $('printArea').innerHTML=gridHTML(y,m,p);
+  document.body.classList.add('printing'); window.print();
+  setTimeout(()=>document.body.classList.remove('printing'),500);
+}
+function loadScript(src){ return new Promise((ok,no)=>{ const s=document.createElement('script'); s.src=src; s.onload=ok; s.onerror=()=>no('載入失敗'); document.head.appendChild(s); }); }
+async function saveImg(){
+  const b=$('pr_img'); b.disabled=true; b.textContent='產生中…';
+  try{
+    if(!window.html2canvas) await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+    const {y,m,p}=prSel();
+    const tmp=document.createElement('div'); tmp.style.cssText='position:fixed;left:-99999px;top:0';
+    tmp.innerHTML=gridHTML(y,m,p); document.body.appendChild(tmp);
+    const cv=await html2canvas(tmp.firstChild,{scale:2,backgroundColor:'#fff'});
+    tmp.remove();
+    const name=`${p||'總部'}_${y}年${m+1}月行事曆.png`;
+    cv.toBlob(blob=>{
+      const f=new File([blob],name,{type:'image/png'});
+      if(navigator.canShare && navigator.canShare({files:[f]}) && /iPhone|iPad|Android/i.test(navigator.userAgent)){ navigator.share({files:[f],title:name}).catch(()=>{}); }
+      else { const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),3000); }
+    },'image/png');
+    toast('圖片已產生');
+  }catch(e){ toast('產生圖片失敗：'+e); }
+  b.disabled=false; b.textContent='🖼 下載圖片';
+}
+
 /* ---------- 單日、明細 ---------- */
 function openDay(ds){
   const hs = holOn(ds), r = rowsFor(ds);
@@ -754,12 +879,15 @@ function openEvent(id, ds, pre){
   checkEventConflict();
   openM('mEvent'); setTimeout(()=>!e&&$('e_title').focus(),50);
 }
+function catHint(){ const c=(document.querySelector('input[name=e_cat]:checked')||{}).value; $('e_allhint').hidden=!ALL_CATS.includes(c); }
 function checkEventConflict(){
+  catHint();
   const s=$('e_s').value, e=$('e_e').value||s;
   const who=[...$('e_who').querySelectorAll('input:checked')].map(x=>x.value);
-  const hits = S.leaves.filter(l=>who.includes(l.人員) && overlap(l.開始日,l.結束日,s,e));
+  const c=(document.querySelector('input[name=e_cat]:checked')||{}).value;
+  const hits = S.leaves.filter(l=>(ALL_CATS.includes(c)||who.includes(l.人員)) && overlap(l.開始日,l.結束日,s,e));
   const a=$('e_alert'); a.classList.toggle('on',hits.length>0);
-  a.innerHTML = hits.length ? '⚠ 參與人那段時間有休假：'+hits.map(l=>esc(l.人員)+' '+md(l.開始日)+(l.結束日!==l.開始日?'～'+md(l.結束日):'')+' '+esc(l.假別)).join('；') : '';
+  a.innerHTML = hits.length ? (ALL_CATS.includes(c)?'⚠ 那段時間有人休假：':'⚠ 參與人那段時間有休假：')+hits.map(l=>esc(l.人員)+' '+md(l.開始日)+(l.結束日!==l.開始日?'～'+md(l.結束日):'')+' '+esc(l.假別)).join('；') : '';
 }
 async function saveEvent(){
   const s=$('e_s').value; let e=$('e_e').value||s;
@@ -811,7 +939,7 @@ function leaveChanged(keepDays){
   const me=$('l_who').value, end=$('l_e').value||s;
   const hits = S.leaves.filter(l=>l.id!==S.editId && overlap(l.開始日,l.結束日,s,end));
   const mine = hits.filter(l=>l.人員===me), others = hits.filter(l=>l.人員!==me);
-  const evs = S.events.filter(x=>me && (x.參與人||'').split(/[、,，]/).includes(me) && overlap(x.開始日,x.結束日,s,end));
+  const evs = S.events.filter(x=>me && evFor(x,me) && overlap(x.開始日,x.結束日,s,end));
   const msg = [];
   if(mine.length) msg.push('⚠ 你這段時間已經登記過：'+mine.map(l=>md(l.開始日)+' '+esc(l.假別)).join('、'));
   if(others.length) msg.push('👥 同一段時間也休假：'+others.map(l=>esc(l.人員)+' '+md(l.開始日)+(l.結束日!==l.開始日?'～'+md(l.結束日):'')+' '+esc(l.假別)).join('；'));
@@ -1007,12 +1135,15 @@ document.addEventListener('paste', e=>{
 });
 
 /* ---------- 事件綁定 ---------- */
+$('pr_m').onchange = previewPrint; $('pr_p').onchange = previewPrint;
+
 $('tabs').onclick = e=>{ const v=e.target.dataset.v; if(!v) return; setView(v); render(); };
 ['fPerson','fEv','fLv','fDu'].forEach(id=>$(id).onchange=render);
 $('e_allday').onchange = ()=>{ $('e_times').hidden = $('e_allday').checked; };
 $('e_s').onchange = ()=>{ eFollow(); checkEventConflict(); };
 $('e_e').onchange = checkEventConflict;
 $('e_who').onchange = checkEventConflict;
+$('e_cat').onchange = catHint;
 // 原本是單日的話，改開始日時結束日跟著走
 function follow(sId,eId){ const s=$(sId), e=$(eId); s.onfocus=()=>{ s.dataset.prev=s.value; };
   return ()=>{ if(!e.value || e.value<s.value || e.value===s.dataset.prev) e.value=s.value; s.dataset.prev=s.value; }; }
