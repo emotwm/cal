@@ -129,11 +129,12 @@ td:first-child,th:first-child{text-align:left}
 .cnt div{background:#f3f7f6;border-radius:10px;padding:8px 12px;font-size:14px}
 .cnt b{font-size:18px;color:#1f7a8c;margin:0 2px}
 .soon{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
-.soon>div{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:12px;padding:10px 14px;cursor:pointer}
+.soon>div{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:12px;padding:14px 16px;cursor:pointer;text-align:center}
 .soon>div.tm{border-left-color:#e0a526}
-.soon h4{margin:0 0 6px;font-size:14px}
-.soon ul{margin:0;padding:0;list-style:none;font-size:13px;line-height:1.7}
-.soon .none{color:var(--sub);font-size:13px}
+.soon h4{margin:0 0 8px;font-size:19px}
+.soon ul{margin:0;padding:0;list-style:none;font-size:17px;line-height:1.8}
+.soon .none{color:var(--sub);font-size:16px}
+@media (max-width:700px){.soon h4{font-size:17px}.soon ul{font-size:15px}.soon .none{font-size:14px}}
 @media (max-width:700px){.soon{grid-template-columns:1fr}}
 .bossbtn{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:7px 12px;cursor:pointer;font-weight:600;color:#5a3e1b}
 .bossbtn.on{background:#5a3e1b;color:#fff;border-color:#5a3e1b}
@@ -394,7 +395,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbxODvcemfw3XcLtI_QM33Dr
 
 const CATS = [
   ['會議','#2f6fb0'],['台哥大／廠商','#7a4fb3'],
-  ['教育訓練','#c26a1b'],['公司活動','#c0397a'],['截止日','#b83a2e'],['其他','#6b7671']
+  ['教育訓練','#c26a1b'],['公司活動','#c0397a'],['截止日','#b83a2e'],['其他','#5f6b64']
 ];
 const LEAVE_TYPES = ['特休','補休','出國','其他'];
 const WEEK = ['日','一','二','三','四','五','六'];
@@ -568,7 +569,7 @@ function calHTML(){
       ...(dutyVisible(du)?[`<div class="item duty">📊 ${esc(mob?du.slice(-2):'業績 '+du)}</div>`]:[]),
       ...lv.map(l=>`<div class="item lv" onclick="event.stopPropagation();showLeave('${l.id}')">${mob ? esc(l.人員.slice(-2)) : '🌴 '+esc(lvLabel(l))}</div>`),
       ...ev.map(e=>{ const c=catColor(e.類別);
-        return `<div class="item" style="background:${c}18;border-color:${c}" onclick="event.stopPropagation();showEvent('${e.id}')">${e.開始時間&&!mob?esc(e.開始時間)+' ':''}${esc(e.標題)}</div>`; })
+        return `<div class="item" style="background:${c}2e;border-color:${c};color:${c};font-weight:600" onclick="event.stopPropagation();showEvent('${e.id}')">${e.開始時間&&!mob?esc(e.開始時間)+' ':''}${esc(e.標題)}</div>`; })
     ];
     const shown = chips.slice(0,max).join('') + (chips.length>max?`<div class="more">還有 ${chips.length-max} 筆</div>`:'');
     h += `<div class="${cls}" onclick="openDay('${ds}')"><div class="dn"><b>${d.getDate()}</b>${hn}</div>${shown}</div>`;
@@ -584,7 +585,7 @@ function rowsFor(ds, first){
   return (dutyVisible(du)?`<div class="row" onclick="openDay('${ds}')"><span class="t">假日業績班</span><span class="tag" style="background:#dff0f3;color:#134e5a">📊 輪班</span><span>${esc(du)}</span></div>`:'')
    + lv.map(l=>`<div class="row" onclick="showLeave('${l.id}')"><span class="t">休假</span><span class="tag" style="background:#fdf1d6;color:#5a4209">${esc(l.假別)}</span><span>${esc(l.人員)}${l.時段&&l.時段!=='全天'?'（'+esc(l.時段)+'）':''}${rng(l)}${l.代理人?' <small style="color:var(--sub)">代理：'+esc(l.代理人)+'</small>':''}</span></div>`).join('')
    + ev.map(e=>{ const c=catColor(e.類別);
-      return `<div class="row" onclick="showEvent('${e.id}')"><span class="t">${esc(evTime(e))}</span><span class="tag" style="background:${c}1f;color:${c}">${esc(e.類別||'其他')}</span><span>${isGeneral(e,fPerson())?GEN_TAG:''}${esc(e.標題)}${rng(e)}${e.地點?' <small style="color:var(--sub)">@'+esc(e.地點)+'</small>':''}</span></div>`; }).join('');
+      return `<div class="row" onclick="showEvent('${e.id}')"><span class="t">${esc(evTime(e))}</span><span class="tag" style="background:${c}2e;color:${c};font-weight:600">${esc(e.類別||'其他')}</span><span>${isGeneral(e,fPerson())?GEN_TAG:''}${esc(e.標題)}${rng(e)}${e.地點?' <small style="color:var(--sub)">@'+esc(e.地點)+'</small>':''}</span></div>`; }).join('');
 }
 
 const BOSS = () => S.staff.includes('老闆') ? '老闆' : (S.staff[0]||'');
@@ -794,7 +795,7 @@ function gridHTML(y,m,p){
       S.leaves.filter(l=>lvOk(l)&&ds>=l.開始日&&ds<=l.結束日).forEach(l=>c+=`<div class="pi" style="background:#fdf1d6;border-color:#e0a526">🌴 ${esc(lvLabel(l))}</div>`);
       S.events.filter(e=>evOk(e)&&ds>=e.開始日&&ds<=e.結束日).sort((a,b)=>(a.開始時間||'').localeCompare(b.開始時間||'')).forEach(e=>{
         const col=catColor(e.類別);
-        c+=`<div class="pi" style="background:${col}14;border-color:${col}">${isGeneral(e,p)?'👥 ':''}${e.開始時間?'<b>'+esc(e.開始時間)+'</b> ':''}${esc(e.標題)}${e.地點?'<br><span style="color:#777">@'+esc(e.地點)+'</span>':''}</div>`;
+        c+=`<div class="pi" style="background:${col}26;border-color:${col};color:${col}">${isGeneral(e,p)?'👥 ':''}${e.開始時間?'<b>'+esc(e.開始時間)+'</b> ':''}${esc(e.標題)}${e.地點?'<br><span style="color:#777">@'+esc(e.地點)+'</span>':''}</div>`;
       });
     }
     h+=`<td class="${out?'out':''} ${off&&!out?'hol':''}"><div class="pd" style="${!out&&(d.getDay()%6===0||off)?'color:#c0392b':''}">${d.getDate()}${hs.length&&!out?'<small>'+esc(hs.map(x=>x.name).join('、'))+'</small>':''}</div>${c}</td>`;
