@@ -1112,7 +1112,7 @@ function normQA(it, who){
       天數:String(half!=='全天'?0.5:(s?eachDay(s,e).length:1)), 代理人:'', 事由:it.事由||'', _ok:!!s};
   }
   let ppl = (Array.isArray(it.參與人)?it.參與人:String(it.參與人||'').split(/[、,，]/)).filter(x=>S.staff.includes(x));
-  if(!ppl.includes(who)) ppl.unshift(who);
+  if(!['會議','公司活動'].includes(it.類別) && !ppl.includes(who)) ppl.unshift(who); // 會議、公司活動沒講人＝全員
   return {類型:'行程', 標題:String(it.標題||'').trim(), 類別:CATS.some(c=>c[0]===it.類別)?it.類別:'其他', 開始日:s, 結束日:e,
     開始時間:okTime(it.開始時間), 結束時間:okTime(it.結束時間), 地點:it.地點||'', 參與人:ppl.join('、'), 備註:it.備註||'', 建立人:who, _ok:!!(s && String(it.標題||'').trim())};
 }
