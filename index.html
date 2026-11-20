@@ -260,7 +260,6 @@ td:first-child,th:first-child{text-align:left}
     <div class="f"><label>參與人</label><div class="pills" id="e_who"></div><div class="hint" id="e_allhint" hidden></div></div>
     <div class="alert" id="e_alert"></div>
     <div class="f"><label>備註</label><textarea id="e_note"></textarea></div>
-    <div class="f"><label>登記人 *</label><select id="e_by"></select></div>
   </div>
   <div class="mf">
     <button class="btn danger" id="e_del" onclick="delEvent()" hidden>刪除</button>
@@ -485,11 +484,10 @@ const DEMO = (()=>{
 
 /* ---------- 篩選、整理 ---------- */
 function fPerson(){ return document.getElementById('fPerson').value; }
-const ALL_CATS = ['會議','公司活動'];   // 這些類別＝全部的人都要知道，每個人的行程都會顯示
-// 沒勾參與人＝全部的人；會議、公司活動也一律全員
-function evFor(e,p){ const ppl=(e.參與人||'').split(/[、,，]/).filter(Boolean); return ALL_CATS.includes(e.類別) || !ppl.length || ppl.includes(p) || e.建立人===p; }
+// 規則：有勾的人才看得到；一個都沒勾＝全部的人
+function evFor(e,p){ const ppl=(e.參與人||'').split(/[、,，]/).filter(Boolean); return !ppl.length || ppl.includes(p); }
 // 選了某人時：這筆是「全員知道」而不是他自己要參加的 → 標 👥 全員
-function isGeneral(e,p){ if(!p) return false; const ppl=(e.參與人||'').split(/[、,，]/).filter(Boolean); return !ppl.includes(p) && e.建立人!==p; }
+function isGeneral(e,p){ if(!p) return false; const ppl=(e.參與人||'').split(/[、,，]/).filter(Boolean); return !ppl.length; }
 const GEN_TAG = '<span class="gen">👥 全員</span>';
 function evVisible(e){ const p=fPerson(); return document.getElementById('fEv').checked && (!p || evFor(e,p)); }
 function lvVisible(l){ const p=fPerson(); return document.getElementById('fLv').checked && (!p || l.人員===p); }
@@ -880,13 +878,12 @@ function openEvent(id, ds, pre){
   const who = Array.isArray(e?.參與人) ? e.參與人 : (e?.參與人||'').split(/[、,，]/).filter(Boolean);
   $('e_who').innerHTML = S.staff.map(p=>`<label><input type="checkbox" value="${esc(p)}" ${who.includes(p)?'checked':''}>${esc(p)}</label>`).join('');
   $('e_note').value = e?.備註 || '';
-  $('e_by').innerHTML = '<option value="">請選擇</option>'+S.staff.map(p=>`<option ${e?.建立人===p?'selected':''}>${esc(p)}</option>`).join('');
   checkEventConflict();
   openM('mEvent'); setTimeout(()=>!e&&$('e_title').focus(),50);
 }
 function catHint(){
-  const c=(document.querySelector('input[name=e_cat]:checked')||{}).value, n=$('e_who').querySelectorAll('input:checked').length;
-  const t = ALL_CATS.includes(c) ? '📢 '+c+'會出現在每個人的行程裡' : (!n ? '📢 沒勾參與人＝全部的人都會看到；私人行程請勾自己' : '');
+  const n=$('e_who').querySelectorAll('input:checked').length;
+  const t = !n ? '📢 沒勾參與人＝全部的人都會看到；只跟某些人有關就勾那些人' : '';
   $('e_allhint').textContent=t; $('e_allhint').hidden=!t;
 }
 function checkEventConflict(){
@@ -894,7 +891,7 @@ function checkEventConflict(){
   const s=$('e_s').value, e=$('e_e').value||s;
   const who=[...$('e_who').querySelectorAll('input:checked')].map(x=>x.value);
   const c=(document.querySelector('input[name=e_cat]:checked')||{}).value;
-  const all = ALL_CATS.includes(c) || !who.length;
+  const all = !who.length;
   const hits = S.leaves.filter(l=>(all||who.includes(l.人員)) && overlap(l.開始日,l.結束日,s,e));
   const a=$('e_alert'); a.classList.toggle('on',hits.length>0);
   a.innerHTML = hits.length ? (all?'⚠ 那段時間有人休假：':'⚠ 參與人那段時間有休假：')+hits.map(l=>esc(l.人員)+' '+md(l.開始日)+(l.結束日!==l.開始日?'～'+md(l.結束日):'')+' '+esc(l.假別)).join('；') : '';
@@ -904,11 +901,10 @@ async function saveEvent(){
   if(!$('e_title').value.trim()) return toast('請填標題');
   if(!s) return toast('請選開始日');
   if(e<s) return toast('結束日不能早於開始日');
-  if(!$('e_by').value) return toast('請選登記人');
   const allday = $('e_allday').checked;
   const data = { id:S.editId||'', 標題:$('e_title').value.trim(), 類別:(document.querySelector('input[name=e_cat]:checked')||{}).value||'其他',
     開始日:s, 結束日:e, 開始時間:allday?'':$('e_ts').value, 結束時間:allday?'':$('e_te').value, 地點:$('e_loc').value.trim(),
-    參與人:[...$('e_who').querySelectorAll('input:checked')].map(x=>x.value).join('、'), 備註:$('e_note').value.trim(), 建立人:$('e_by').value };
+    參與人:[...$('e_who').querySelectorAll('input:checked')].map(x=>x.value).join('、'), 備註:$('e_note').value.trim(), 建立人:(S.editId?(S.events.find(x=>x.id===S.editId)||{}).建立人:'')||'' };
   await save('saveEvent', data, 'mEvent', 'e_save', S.events);
 }
 async function delEvent(){ if(confirm('確定刪除這筆行程？')) await remove('deleteEvent', S.editId, 'mEvent', S.events); }
