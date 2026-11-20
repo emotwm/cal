@@ -3,7 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>倚盟總部行事曆</title>
+<title>倚盟 Today</title>
+<meta name="apple-mobile-web-app-title" content="倚盟Today">
+<meta name="application-name" content="倚盟Today">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1f6f5c">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=2">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png?v=2">
 <style>
 :root{
   --bg:#f4f1ea;--card:#fffdf8;--ink:#22302c;--sub:#6b7671;--line:#e3ddd0;
@@ -205,7 +212,7 @@ td:first-child,th:first-child{text-align:left}
 </head>
 <body>
 <header>
-  <h1>倚盟總部行事曆</h1><span class="sub">行程・休假登記</span>
+  <h1>倚盟 Today</h1><span class="sub">總部行事曆・休假登記</span>
   <span class="sp"></span>
   <button class="hbtn ai" onclick="openQA()">✨ <span class="lg">語音／截圖</span><span class="sm">快速</span></button>
   <button class="hbtn" onclick="openEvent()">＋ <span class="lg">新增</span>行程</button>
@@ -775,7 +782,7 @@ function gridHTML(y,m,p){
   const last=new Date(y,m+1,0), end=new Date(last); end.setDate(last.getDate()+(6-last.getDay()));
   const days=eachDay(ymd(start),ymd(end));
   const evOk=e=>!p||evFor(e,p), lvOk=l=>!p||l.人員===p;
-  let h=`<div class="pgrid"><h2>${p===BOSS()?'👔 ':''}${p?esc(p)+' ':'倚盟總部 '}${y} 年 ${m+1} 月行事曆</h2><div class="psub">倚盟總部行事曆・${new Date().toLocaleDateString('zh-TW')} 製表</div><table><tr>`
+  let h=`<div class="pgrid"><h2>${p===BOSS()?'👔 ':''}${p?esc(p)+' ':'倚盟總部 '}${y} 年 ${m+1} 月行事曆</h2><div class="psub">倚盟 Today・${new Date().toLocaleDateString('zh-TW')} 製表</div><table><tr>`
     + WEEK.map((w,i)=>`<th class="${i%6===0?'we':''}">${w}</th>`).join('')+'</tr>';
   days.forEach((ds,i)=>{
     if(i%7===0) h+='<tr>';
