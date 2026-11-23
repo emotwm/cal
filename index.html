@@ -396,9 +396,10 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbxODvcemfw3XcLtI_QM33Dr
 /* ========================================================== */
 
 const CATS = [
-  ['會議','#2f6fb0'],['台哥大／廠商','#7a4fb3'],
-  ['教育訓練','#c26a1b'],['公司活動','#c0397a'],['截止日','#b83a2e'],['其他','#5f6b64']
+  ['倚盟','#2f6fb0'],['台哥大／廠商','#7a4fb3'],
+  ['截止日','#b83a2e'],['盤點','#0f8a8a'],['老闆私人','#7a5230'],['其他','#5f6b64']
 ];
+const OLD_CATS = {'會議':'倚盟','教育訓練':'倚盟','倚盟活動':'倚盟','公司活動':'倚盟'};
 const LEAVE_TYPES = ['特休','補休','出國','其他'];
 const WEEK = ['日','一','二','三','四','五','六'];
 const DUTY_HOURS = 2;    // 值一次假日業績班可補休幾小時
@@ -431,6 +432,7 @@ async function api(method, payload){
 const CACHE_KEY = 'ymtoday_cache_v1';
 function applyData(r){
   S.staff = r.staff||[]; S.events = r.events||[]; S.leaves = r.leaves||[];
+  S.events.forEach(e=>{ if(OLD_CATS[e.類別]) e.類別=OLD_CATS[e.類別]; }); // 舊類別名稱自動換新
   S.dutyStaff = r.dutyStaff || []; S.duties = r.duties || [];
   if(r.hol) Object.keys(r.hol).forEach(y=>{ if(Array.isArray(r.hol[y])) S.hol[y]=r.hol[y]; });
   fillStaff();
@@ -495,8 +497,8 @@ const DEMO = (()=>{
     events:[
       {id:'d1',標題:'台哥大區會議',類別:'台哥大／廠商',開始日:D(5),結束日:D(5),開始時間:'14:00',結束時間:'16:00',地點:'台哥大南區',參與人:'姚東妍',備註:'',建立人:'姚東妍'},
       {id:'d2',標題:'月底業績結算',類別:'截止日',開始日:D(25),結束日:D(25),開始時間:'',結束時間:'',地點:'',參與人:'',備註:'',建立人:'廖宛如'},
-      {id:'d3',標題:'凱旋店盤點',類別:'其他',開始日:D(12),結束日:D(12),開始時間:'10:00',結束時間:'',地點:'凱旋店',參與人:'曾芳新、廖宛如',備註:'順便點配件',建立人:'曾芳新'},
-      {id:'d4',標題:'新人教育訓練',類別:'教育訓練',開始日:D(18),結束日:D(19),開始時間:'',結束時間:'',地點:'總部',參與人:'姚東妍',備註:'',建立人:'姚東妍'}
+      {id:'d3',標題:'凱旋店盤點',類別:'盤點',開始日:D(12),結束日:D(12),開始時間:'10:00',結束時間:'',地點:'凱旋店',參與人:'曾芳新、廖宛如',備註:'順便點配件',建立人:'曾芳新'},
+      {id:'d4',標題:'新人教育訓練',類別:'倚盟',開始日:D(18),結束日:D(19),開始時間:'',結束時間:'',地點:'總部',參與人:'姚東妍',備註:'',建立人:'姚東妍'}
     ],
     leaves:[
       {id:'l1',人員:'曾芳新',假別:'特休',開始日:D(8),結束日:D(9),時段:'全天',天數:'2',代理人:'廖宛如',事由:''},
@@ -512,6 +514,7 @@ function fPerson(){ return document.getElementById('fPerson').value; }
 // 規則：有勾的人才看得到；一個都沒勾＝全部的人
 function evFor(e,p){ const ppl=(e.參與人||'').split(/[、,，]/).filter(Boolean); return !ppl.length || ppl.includes(p); }
 // 選了某人時：這筆是「全員知道」而不是他自己要參加的 → 標 👥 全員
+function pplTag(e){ const ppl=(e.參與人||'').split(/[、,，]/).filter(Boolean); return ppl.length?' <small style="color:var(--sub)">· '+ppl.map(esc).join('、')+'</small>':''; }
 function isGeneral(e,p){ if(!p) return false; const ppl=(e.參與人||'').split(/[、,，]/).filter(Boolean); return !ppl.length; }
 const GEN_TAG = '<span class="gen">👥 全員</span>';
 function evVisible(e){ const p=fPerson(); return document.getElementById('fEv').checked && (!p || evFor(e,p)); }
@@ -602,7 +605,7 @@ function rowsFor(ds, first){
   return (dutyVisible(du)?`<div class="row" onclick="openDay('${ds}')"><span class="t">假日業績班</span><span class="tag" style="background:#dff0f3;color:#134e5a">📊 輪班</span><span>${esc(du)}</span></div>`:'')
    + lv.map(l=>`<div class="row" onclick="showLeave('${l.id}')"><span class="t">休假</span><span class="tag" style="background:#fdf1d6;color:#5a4209">${esc(l.假別)}</span><span>${esc(l.人員)}${l.時段&&l.時段!=='全天'?'（'+esc(l.時段)+'）':''}${rng(l)}${l.代理人?' <small style="color:var(--sub)">代理：'+esc(l.代理人)+'</small>':''}</span></div>`).join('')
    + ev.map(e=>{ const c=catColor(e.類別);
-      return `<div class="row" onclick="showEvent('${e.id}')"><span class="t">${esc(evTime(e))}</span><span class="tag" style="background:${c}2e;color:${c};font-weight:600">${esc(e.類別||'其他')}</span><span>${isGeneral(e,fPerson())?GEN_TAG:''}${esc(e.標題)}${rng(e)}${e.地點?' <small style="color:var(--sub)">@'+esc(e.地點)+'</small>':''}</span></div>`; }).join('');
+      return `<div class="row" onclick="showEvent('${e.id}')"><span class="t">${esc(evTime(e))}</span><span class="tag" style="background:${c}2e;color:${c};font-weight:600">${esc(e.類別||'其他')}</span><span>${isGeneral(e,fPerson())?GEN_TAG:''}${esc(e.標題)}${rng(e)}${e.地點?' <small style="color:var(--sub)">@'+esc(e.地點)+'</small>':''}${pplTag(e)}</span></div>`; }).join('');
 }
 
 const BOSS = () => S.staff.includes('老闆') ? '老闆' : (S.staff[0]||'');
@@ -892,7 +895,7 @@ function openEvent(id, ds, pre){
   $('evTitle').textContent = id ? '編輯行程' : '新增行程';
   $('e_del').hidden = !id;
   $('e_title').value = e?.標題 || '';
-  $('e_cat').innerHTML = CATS.map(c=>`<label><input type="radio" name="e_cat" value="${c[0]}" ${(e?.類別||'會議')===c[0]?'checked':''}><i style="width:8px;height:8px;border-radius:50%;background:${c[1]};display:inline-block"></i>${c[0]}</label>`).join('');
+  $('e_cat').innerHTML = CATS.map(c=>`<label><input type="radio" name="e_cat" value="${c[0]}" ${(e?.類別||'倚盟')===c[0]?'checked':''}><i style="width:8px;height:8px;border-radius:50%;background:${c[1]};display:inline-block"></i>${c[0]}</label>`).join('');
   $('e_s').value = e?.開始日 || ds || todayStr();
   $('e_e').value = e?.結束日 || ds || $('e_s').value;
   $('e_s').dataset.prev = $('e_s').value;
@@ -930,6 +933,7 @@ async function saveEvent(){
   const data = { id:S.editId||'', 標題:$('e_title').value.trim(), 類別:(document.querySelector('input[name=e_cat]:checked')||{}).value||'其他',
     開始日:s, 結束日:e, 開始時間:allday?'':$('e_ts').value, 結束時間:allday?'':$('e_te').value, 地點:$('e_loc').value.trim(),
     參與人:[...$('e_who').querySelectorAll('input:checked')].map(x=>x.value).join('、'), 備註:$('e_note').value.trim(), 建立人:(S.editId?(S.events.find(x=>x.id===S.editId)||{}).建立人:'')||'' };
+  if(data.類別==='老闆私人' && S.staff.includes('老闆') && !data.參與人.split('、').includes('老闆')) data.參與人=['老闆',...data.參與人.split('、').filter(Boolean)].join('、');
   await save('saveEvent', data, 'mEvent', 'e_save', S.events);
 }
 async function delEvent(){ if(confirm('確定刪除這筆行程？')) await remove('deleteEvent', S.editId, 'mEvent', S.events); }
@@ -1112,7 +1116,8 @@ function normQA(it, who){
       天數:String(half!=='全天'?0.5:(s?eachDay(s,e).length:1)), 代理人:'', 事由:it.事由||'', _ok:!!s};
   }
   let ppl = (Array.isArray(it.參與人)?it.參與人:String(it.參與人||'').split(/[、,，]/)).filter(x=>S.staff.includes(x));
-  if(!['會議','公司活動'].includes(it.類別) && !ppl.includes(who)) ppl.unshift(who); // 會議、公司活動沒講人＝全員
+  if(it.類別!=='倚盟' && !ppl.includes(who)) ppl.unshift(who); // 倚盟類別沒講人＝全員
+  if(it.類別==='老闆私人' && S.staff.includes('老闆')) ppl=['老闆'];
   return {類型:'行程', 標題:String(it.標題||'').trim(), 類別:CATS.some(c=>c[0]===it.類別)?it.類別:'其他', 開始日:s, 結束日:e,
     開始時間:okTime(it.開始時間), 結束時間:okTime(it.結束時間), 地點:it.地點||'', 參與人:ppl.join('、'), 備註:it.備註||'', 建立人:who, _ok:!!(s && String(it.標題||'').trim())};
 }
@@ -1174,7 +1179,11 @@ $('e_allday').onchange = ()=>{ $('e_times').hidden = $('e_allday').checked; };
 $('e_s').onchange = ()=>{ eFollow(); checkEventConflict(); };
 $('e_e').onchange = checkEventConflict;
 $('e_who').onchange = checkEventConflict;
-$('e_cat').onchange = catHint;
+$('e_cat').onchange = ()=>{ // 選老闆私人時自動勾老闆
+  const c=(document.querySelector('input[name=e_cat]:checked')||{}).value;
+  if(c==='老闆私人'){ const b=[...$('e_who').querySelectorAll('input')].find(x=>x.value==='老闆'); if(b) b.checked=true; }
+  checkEventConflict();
+};
 // 原本是單日的話，改開始日時結束日跟著走
 function follow(sId,eId){ const s=$(sId), e=$(eId); s.onfocus=()=>{ s.dataset.prev=s.value; };
   return ()=>{ if(!e.value || e.value<s.value || e.value===s.dataset.prev) e.value=s.value; s.dataset.prev=s.value; }; }
