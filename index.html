@@ -120,9 +120,9 @@ td:first-child,th:first-child{text-align:left}
 .loading.on{display:flex}
 .daybtns{display:flex;gap:8px;margin-top:12px}
 .item.duty{background:#dff0f3;border-color:#1f7a8c;color:#134e5a;font-weight:600}
-.dtable td{text-align:left}
+.dtable td,.dtable th{text-align:left}
 .dtable td:first-child{white-space:nowrap}
-@media (max-width:700px){.dtable th:nth-child(2),.dtable td:nth-child(2){display:none}.dtable td,.dtable th{padding:6px 4px}}
+@media (max-width:700px){.dtable col{width:auto!important}.dtable td,.dtable th{padding:6px 4px}}
 .dtable select{border:1px solid var(--line);border-radius:8px;padding:6px 8px;background:#fff;min-width:110px}
 .dtable tr.chg td{background:#fff8e6}
 .dtable .w{color:var(--warn);font-size:13px}
@@ -612,7 +612,7 @@ const BOSS = () => S.staff.includes('老闆') ? '老闆' : (S.staff[0]||'');
 function setView(v){ S.view=v; [...$('tabs').children].forEach(b=>b.classList.toggle('on',b.dataset.v===v)); }
 function toggleBoss(){
   const on = fPerson()===BOSS() && S.view==='list';
-  $('fPerson').value = on ? '' : BOSS(); setView(on ? 'cal' : 'list'); render();
+  $('fPerson').value = on ? '' : BOSS(); S.bossMode = !on; setView(on ? 'cal' : 'list'); render();
 }
 function syncHash(){
   const p=fPerson(), q=new URLSearchParams(); if(p) q.set('p',p); if(S.view!=='cal') q.set('v',S.view);
@@ -623,6 +623,7 @@ function readHash(){
   const q=new URLSearchParams(location.hash.slice(1));
   if(q.get('p') && S.staff.includes(q.get('p'))) $('fPerson').value=q.get('p');
   if(['cal','list','duty'].includes(q.get('v'))) setView(q.get('v'));
+  S.bossMode = q.get('p')===BOSS() && q.get('v')==='list';
 }
 function listHTML(){
   const p = fPerson(), t = todayStr();
@@ -715,14 +716,14 @@ function dutyHTML(){
     <div class="cnt">${people.map(p=>`<div>${esc(p)}　本月<b>${count(p,mf,mt)}</b>次　今年<b>${count(p,S.y+'-01-01',S.y+'-12-31')}</b>次　剩餘補休<b>${compBalance(p).left}</b>小時</div>`).join('')}
     ${unassigned?`<div style="background:var(--warnbg);color:var(--warn)">還有 <b style="color:var(--warn)">${unassigned}</b> 天沒排</div>`:''}</div>`;
   if(!days.length) return h+'<div class="empty">這個月沒有假日</div></div>';
-  h += '<table class="dtable"><tr><th>日期</th><th>假日</th><th>負責人</th><th>提醒</th></tr>';
+  h += '<table class="dtable"><colgroup><col style="width:170px"><col style="width:190px"><col></colgroup><tr><th>日期</th><th>負責人</th><th>提醒</th></tr>';
   for(const ds of days){
     const p = dutyVal(ds), hs = holOn(ds).map(x=>x.name).join('、');
     const warn = [];
     if(p && onLeave(p,ds)) warn.push('⚠ '+esc(p)+' 那天有請假');
     if(p && !isOffDay(ds)) warn.push('這天不是假日');
     if(p && !S.dutyStaff.includes(p)) warn.push('代班');
-    h += `<tr class="${ds in DUTY.pending?'chg':''}"><td>${md(ds)}</td><td style="color:var(--red);font-size:13px">${esc(hs)}</td>
+    h += `<tr class="${ds in DUTY.pending?'chg':''}"><td>${md(ds)}${hs?`<div style="color:var(--red);font-size:12px">${esc(hs)}</div>`:''}</td>
       <td><select onchange="setPending('${ds}',this.value);render()">${dutyOptions(p)}</select></td><td class="w">${warn.join('；')}</td></tr>`;
   }
   return h+'</table><p class="hint">黃底＝改了還沒存。姚東妍等不在輪班名單的人，可以從選單的「特殊狀況代班」選。</p></div>';
@@ -1173,8 +1174,11 @@ document.addEventListener('paste', e=>{
 /* ---------- 事件綁定 ---------- */
 $('pr_m').onchange = previewPrint; $('pr_p').onchange = previewPrint;
 
-$('tabs').onclick = e=>{ const v=e.target.dataset.v; if(!v) return; setView(v); render(); };
+$('tabs').onclick = e=>{ const v=e.target.dataset.v; if(!v) return;
+  if(S.bossMode && v!=='list'){ $('fPerson').value=''; S.bossMode=false; } // 從老闆行程點回月曆／輪班＝回到全部人員
+  setView(v); render(); };
 ['fPerson','fEv','fLv','fDu'].forEach(id=>$(id).onchange=render);
+$('fPerson').onchange=()=>{ S.bossMode=false; render(); };
 $('e_allday').onchange = ()=>{ $('e_times').hidden = $('e_allday').checked; };
 $('e_s').onchange = ()=>{ eFollow(); checkEventConflict(); };
 $('e_e').onchange = checkEventConflict;
