@@ -143,6 +143,8 @@ td:first-child,th:first-child{text-align:left}
 .bossbtn.on{background:#5a3e1b;color:#fff;border-color:#5a3e1b}
 .lhead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 0 6px;border-bottom:2px solid var(--line)}
 .lhead h3{margin:0;font-size:17px;flex:1}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}.seg button{border:0;background:#fff;padding:7px 14px;font:inherit;font-size:14px;cursor:pointer;color:var(--sub)}.seg button.on{background:var(--accent);color:#fff;font-weight:600}
+.lsearch{padding:10px 0 2px}.lsearch input{width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font:inherit;font-size:15px;background:#fff}
 .mhead{margin:16px 0 0;padding:6px 10px;background:#eef3f1;border-radius:8px;font-weight:700;color:var(--accent);font-size:14px}
 .gen{font-size:11px;background:#eef0ec;color:#5b6660;border-radius:10px;padding:0 6px;margin-right:5px;white-space:nowrap}
 .tg{background:var(--accent);color:#fff;border-radius:6px;padding:0 6px;font-size:12px;margin-right:6px}
@@ -212,17 +214,57 @@ td:first-child,th:first-child{text-align:left}
   .bossbtn{padding:6px 10px;font-size:14px}
   .row{flex-wrap:wrap}
 }
+
+/* ===== v2 視覺 ===== */
+:root{--bg:#f5f2ea;--card:#fffdf9;--line:#e6e0d3;--accent:#1f5f4a;--accent2:#e8f1ec;--shadow:0 1px 2px rgba(40,50,40,.05),0 6px 18px rgba(40,50,40,.06)}
+header{background:linear-gradient(120deg,#17483a,#1f5f4a 60%,#2a6e57);padding:14px 22px;box-shadow:0 2px 10px rgba(0,0,0,.08)}
+header .logo{display:flex;align-items:center;gap:10px}
+header .logo svg{width:34px;height:34px;flex:none}
+header h1{font-size:24px}
+.hbtn{display:inline-flex;align-items:center;gap:0;border-radius:12px;padding:9px 15px;box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.hbtn svg{width:17px;height:17px;flex:none;margin-right:6px}
+.wrap{max-width:1280px;padding:18px}
+.soon>div{border:0;border-left:5px solid var(--accent);border-radius:16px;box-shadow:var(--shadow)}
+.bar{background:var(--card);border-radius:16px;box-shadow:var(--shadow);padding:10px 12px}
+.tabs{border:0;background:#f0ece2;border-radius:12px;padding:3px}
+.tabs button{border-radius:9px;padding:7px 16px}
+.tabs button.on{box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.nav button{border-radius:10px;background:#fff}
+.bossbtn{border-radius:12px;background:#fbf3e3;border-color:#f0e0c0}
+.cal{border:0;border-radius:16px;box-shadow:var(--shadow)}
+.wk div{background:#f7f3ea;font-weight:600}
+.main{display:grid;grid-template-columns:1fr;gap:16px;align-items:start}
+.main.side{grid-template-columns:minmax(0,1fr) 300px}
+aside.boss{display:none}
+.main.side aside.boss{display:block;background:var(--card);border-radius:16px;box-shadow:var(--shadow);overflow:hidden;position:sticky;top:12px}
+.boss .bh{display:flex;align-items:center;gap:12px;padding:16px 16px 12px;background:linear-gradient(135deg,#eef4ea,#f8f2e4)}
+.boss .bh img{width:64px;height:64px;border-radius:50%;object-fit:cover;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.1)}
+.boss .bh h3{margin:0;font-size:19px}
+.boss .bh small{color:var(--sub);font-size:13px}
+.boss ul{list-style:none;margin:0;padding:6px 14px}
+.boss li{display:flex;gap:12px;padding:10px 2px;border-bottom:1px dashed var(--line);cursor:pointer}
+.boss li:last-child{border-bottom:0}
+.boss .dbox{width:50px;flex:none;text-align:center;border:1px solid var(--line);border-radius:10px;padding:4px 0;font-size:13px;line-height:1.3;background:#fff}
+.boss .dbox b{display:block;font-size:16px}
+.boss .info{min-width:0;border-left:3px solid var(--c,#2f6fb0);padding-left:9px}
+.boss .info .tt{font-weight:600;font-size:15px}
+.boss .info .tm{font-size:12px;color:var(--sub)}
+.boss .more{display:block;margin:4px 14px 14px;text-align:center;border:1px solid var(--line);border-radius:999px;padding:8px;cursor:pointer;background:#fff;font-weight:600;color:var(--accent)}
+.boss .none{padding:18px;color:var(--sub);text-align:center}
+@media (max-width:1099px){.main.side{grid-template-columns:1fr}.main.side aside.boss{display:none}}
+@media (max-width:700px){.bar{padding:8px}header{padding:10px 12px;gap:8px}header .sub{display:none}header h1{font-size:19px;letter-spacing:1px}header .logo{gap:6px}header .logo svg{width:24px;height:24px}.hbtn{padding:7px 9px;font-size:14px;border-radius:10px}.hbtn svg{width:15px;height:15px;margin-right:3px}.wrap{padding:12px}}
+@media (max-width:380px){header h1{font-size:17px;letter-spacing:0}header .logo svg{display:none}.hbtn{padding:7px 7px;font-size:13px}.hbtn svg{display:none}}
 </style>
 </head>
 <body>
 <header>
-  <h1>倚盟 Today</h1><span class="sub">總部行事曆・休假登記</span>
+  <div class="logo"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M33 5C17 5 7 13 7 25c0 3 1 6 2 8 2-9 8-16 17-20-7 5-12 12-14 21 3 1 5 1 8 1 11 0 16-11 13-30z" fill="#a8d5b5"/><path d="M12 35c2-9 7-16 15-21" stroke="#e8f5ec" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg><h1>倚盟 Today</h1></div><span class="sub">總部行事曆・休假登記・假日輪班</span>
   <span class="sp"></span>
-  <button class="hbtn ai" onclick="openQA()">✨ <span class="lg">語音／截圖</span><span class="sm">快速</span></button>
-  <button class="hbtn" onclick="openEvent()">＋ <span class="lg">新增</span>行程</button>
-  <button class="hbtn leave" onclick="openLeave()">＋ <span class="lg">登記</span>休假</button>
+  <button class="hbtn ai" onclick="openQA()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"/></svg><span class="lg">語音／截圖</span><span class="sm">快速</span></button>
+  <button class="hbtn" onclick="openEvent()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18M12 13v5M9.5 15.5h5"/></svg><span class="lg">新增</span>行程</button>
+  <button class="hbtn leave" onclick="openLeave()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 0 1 9 9H3a9 9 0 0 1 9-9z"/><path d="M12 12v7a2 2 0 0 0 4 0"/></svg><span class="lg">登記</span>休假</button>
 </header>
-<div class="demo" id="demo" hidden>示範模式：還沒接上後端，資料只是範例，重新整理就會不見</div>
+<div class="demo" id="demo" hidden></div>
 
 <div class="wrap">
   <div id="soon"></div>
@@ -238,7 +280,7 @@ td:first-child,th:first-child{text-align:left}
       <button data-v="list">清單</button>
       <button data-v="duty">假日輪班</button>
     </div>
-    <button class="bossbtn" id="bossBtn" onclick="toggleBoss()">👔 老闆行程</button>
+    <button class="bossbtn" id="bossBtn" onclick="toggleBoss()">👩‍💼 老闆行程</button>
     <span class="sp"></span>
     <select id="fPerson"><option value="">全部人員</option></select>
     <div class="chk">
@@ -247,8 +289,10 @@ td:first-child,th:first-child{text-align:left}
       <label><input type="checkbox" id="fDu" checked>輪班</label>
     </div>
   </div>
+  <div class="main" id="main"><div style="min-width:0">
   <div id="view"></div>
   <div class="legend" id="legend"></div>
+  </div><aside class="boss" id="aside"></aside></div>
 </div>
 
 <!-- 行程表單 -->
@@ -417,6 +461,7 @@ const overlap = (a1,a2,b1,b2) => a1<=b2 && b1<=a2;
 const esc = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const catColor = c => (CATS.find(x=>x[0]===c)||CATS[CATS.length-1])[1];
 const todayStr = () => ymd(new Date());
+const addDays = (s,n) => { const d=parse(s); d.setDate(d.getDate()+n); return ymd(d); };
 
 /* ---------- 後端 ---------- */
 async function api(method, payload){
@@ -563,6 +608,8 @@ async function render(){
   syncHash();
   document.querySelector('.nav').style.visibility = S.view==='list' ? 'hidden' : '';
   $('soon').innerHTML = soonHTML();
+  const side = S.view!=='list' && S.staff.includes(BOSS());
+  $('main').classList.toggle('side', side); $('aside').innerHTML = side ? asideHTML() : '';
   document.getElementById('mLabel').textContent = S.y+' 年 '+(S.m+1)+' 月';
   [S.y, S.m===0?S.y-1:S.y, S.m===11?S.y+1:S.y].forEach(ensureHolidays); // 沒有的年份背景抓，不擋畫面
   const v = document.getElementById('view');
@@ -626,28 +673,56 @@ function readHash(){
   S.bossMode = q.get('p')===BOSS() && q.get('v')==='list';
 }
 function listHTML(){
-  const p = fPerson(), t = todayStr();
+  const p = fPerson(), t = todayStr(), wk = S.range==='week', wEnd = addDays(t,6);
   let last = t;
   S.events.forEach(e=>{ if(evVisible(e) && e.結束日>last) last=e.結束日; });
   S.leaves.forEach(l=>{ if(lvVisible(l) && l.結束日>last) last=l.結束日; });
   const dm = mergedDuty();
   Object.keys(dm).forEach(d=>{ if(dutyVisible(dm[d]) && d>last) last=d; });
-  const nEv = S.events.filter(e=>evVisible(e) && e.結束日>=t).length;
-  const nLv = S.leaves.filter(l=>lvVisible(l) && l.結束日>=t).reduce((a,l)=>a+leaveDays(l,t,'9999-12-31'),0);
-  const nDu = Object.keys(dm).filter(d=>d>=t && dutyVisible(dm[d])).length;
-  let h = `<div class="lhead"><h3>${p===BOSS()?'👔 ':''}${p?esc(p)+'・':''}接下來的行程<small>從今天 ${md(t)} 起：行程 ${nEv} 筆${nLv?`・休假 ${Math.round(nLv*10)/10} 天`:''}${nDu?`・假日業績班 ${nDu} 天`:''}</small></h3>
-    <button class="btn ghost" onclick="openPrint()">🗓 行事曆圖</button></div>`;
-  let any=false, curM='';
+  if(wk) last = wEnd;
+  const end = wk ? wEnd : '9999-12-31';
+  const nEv = S.events.filter(e=>evVisible(e) && e.結束日>=t && e.開始日<=end).length;
+  const nLv = S.leaves.filter(l=>lvVisible(l) && l.結束日>=t && l.開始日<=end).reduce((a,l)=>a+leaveDays(l,t,end),0);
+  const nDu = Object.keys(dm).filter(d=>d>=t && d<=end && dutyVisible(dm[d])).length;
+  let h = `<div class="lhead"><h3>${p===BOSS()?'👩‍💼 ':''}${p?esc(p)+'・':''}${wk?'本週行程':'接下來的行程'}<small>${wk?`${md(t)}～${md(wEnd)}`:`從今天 ${md(t)} 起`}：行程 ${nEv} 筆${nLv?`・休假 ${Math.round(nLv*10)/10} 天`:''}${nDu?`・假日業績班 ${nDu} 天`:''}</small></h3>
+    <div class="seg"><button class="${wk?'':'on'}" onclick="S.range='all';render()">全部</button><button class="${wk?'on':''}" onclick="S.range='week';render()">本週</button></div>
+    <button class="btn ghost" onclick="openPrint()">🗓 行事曆圖</button></div>
+    <div class="lsearch"><input id="lq" type="search" placeholder="🔍 搜尋行程（例如：盤點、台哥大、後昌）" value="${esc(S.q||'')}" oninput="S.q=this.value;$('lbody').innerHTML=listBody()"></div>`;
+  return '<div class="panel">'+h+'<div id="lbody">'+listBody()+'</div></div>';
+}
+function listBody(){
+  const t = todayStr(), q = (S.q||'').trim().toLowerCase();
+  if(q) return searchHTML(q);
+  let last = t;
+  S.events.forEach(e=>{ if(evVisible(e) && e.結束日>last) last=e.結束日; });
+  S.leaves.forEach(l=>{ if(lvVisible(l) && l.結束日>last) last=l.結束日; });
+  const dm = mergedDuty();
+  Object.keys(dm).forEach(d=>{ if(dutyVisible(dm[d]) && d>last) last=d; });
+  if(S.range==='week') last = addDays(t,6);
+  let h='', any=false, curM='';
   for(const ds of eachDay(t,last)){
     const r = rowsFor(ds, t);
     if(!r) continue;
     const mk = ds.slice(0,7);
-    if(mk!==curM){ curM=mk; h += `<div class="mhead">${+mk.slice(0,4)} 年 ${+mk.slice(5)} 月</div>`; }
+    if(mk!==curM && S.range!=='week'){ curM=mk; h += `<div class="mhead">${+mk.slice(0,4)} 年 ${+mk.slice(5)} 月</div>`; }
     const hs = holOn(ds);
     any=true;
     h += `<div class="lday"><h4>${ds===t?'<span class="tg">今天</span>':''}${md(ds)}${hs.length?'<small>'+esc(hs.map(x=>x.name).join('、'))+'</small>':''}</h4>${r}</div>`;
   }
-  return '<div class="panel">'+h+(any?'':'<div class="empty">接下來沒有行程或休假</div>')+'</div>';
+  return any ? h : `<div class="empty">${S.range==='week'?'這 7 天沒有行程或休假 👍':'接下來沒有行程或休假'}</div>`;
+}
+function searchHTML(q){
+  // 搜尋全部行程（含過去），比對標題、地點、備註、類別、參與人
+  const t = todayStr();
+  const hit = S.events.filter(e=>evVisible(e) && [e.標題,e.地點,e.備註,e.類別,e.參與人].join(' ').toLowerCase().includes(q))
+    .sort((a,b)=>(a.開始日+(a.開始時間||'')).localeCompare(b.開始日+(b.開始時間||'')));
+  if(!hit.length) return `<div class="empty">找不到「${esc(S.q.trim())}」的行程</div>`;
+  const fut = hit.filter(e=>e.結束日>=t), past = hit.filter(e=>e.結束日<t).reverse();
+  const row = e=>{ const c=catColor(e.類別);
+    return `<div class="row" onclick="showEvent('${e.id}')"><span class="t">${md(e.開始日)}</span><span class="tag" style="background:${c}2e;color:${c};font-weight:600">${esc(e.類別||'其他')}</span><span>${esc(e.標題)}${e.地點?' <small style="color:var(--sub)">@'+esc(e.地點)+'</small>':''}${pplTag(e)}</span></div>`; };
+  return `<div class="mhead">找到 ${hit.length} 筆</div>`
+    + (fut.length?'<div class="lday"><h4>今天以後</h4>'+fut.map(row).join('')+'</div>':'')
+    + (past.length?'<div class="lday"><h4 style="color:var(--sub)">已經過去</h4>'+past.map(row).join('')+'</div>':'');
 }
 
 function leaveDays(l, from, to){
@@ -804,7 +879,7 @@ function gridHTML(y,m,p){
   const last=new Date(y,m+1,0), end=new Date(last); end.setDate(last.getDate()+(6-last.getDay()));
   const days=eachDay(ymd(start),ymd(end));
   const evOk=e=>!p||evFor(e,p), lvOk=l=>!p||l.人員===p;
-  let h=`<div class="pgrid"><h2>${p===BOSS()?'👔 ':''}${p?esc(p)+' ':'倚盟總部 '}${y} 年 ${m+1} 月行事曆</h2><div class="psub">倚盟 Today・${new Date().toLocaleDateString('zh-TW')} 製表</div><table><tr>`
+  let h=`<div class="pgrid"><h2>${p===BOSS()?'👩‍💼 ':''}${p?esc(p)+' ':'倚盟總部 '}${y} 年 ${m+1} 月行事曆</h2><div class="psub">倚盟 Today・${new Date().toLocaleDateString('zh-TW')} 製表</div><table><tr>`
     + WEEK.map((w,i)=>`<th class="${i%6===0?'we':''}">${w}</th>`).join('')+'</tr>';
   days.forEach((ds,i)=>{
     if(i%7===0) h+='<tr>';
@@ -938,6 +1013,25 @@ async function saveEvent(){
   await save('saveEvent', data, 'mEvent', 'e_save', S.events);
 }
 async function delEvent(){ if(confirm('確定刪除這筆行程？')) await remove('deleteEvent', S.editId, 'mEvent', S.events); }
+
+
+/* ---------- v2：統計卡＋老闆近期行程 ---------- */
+const SVG = d => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+const IC = {
+  cal: SVG('<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 17.5h.01M12 17.5h.01"/>'),
+  palm: SVG('<path d="M12 3a9 9 0 0 1 9 9H3a9 9 0 0 1 9-9z"/><path d="M12 12v7a2 2 0 0 0 4 0"/>'),
+  duty: SVG('<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>')
+};
+function asideHTML(){
+  const b = BOSS(), t = todayStr();
+  const list = S.events.filter(e=>evFor(e,b) && e.結束日>=t).sort((x,y)=>(x.開始日+(x.開始時間||'')).localeCompare(y.開始日+(y.開始時間||''))).slice(0,6);
+  const W='日一二三四五六';
+  const li = list.map(e=>{ const d=parse(e.開始日), c=catColor(e.類別);
+    return `<li onclick="showEvent('${e.id}')"><div class="dbox"><b>${d.getMonth()+1}/${d.getDate()}</b>（${W[d.getDay()]}）</div><div class="info" style="--c:${c}"><div class="tt">${isGeneral(e,b)?'👥 ':''}${esc(e.標題)}</div><div class="tm">${esc(evTime(e))}${e.地點?'・'+esc(e.地點):''}${e.開始日!==e.結束日?'・到 '+md(e.結束日):''}</div></div></li>`; }).join('');
+  return `<div class="bh"><img src="boss.png" alt="" onerror="this.remove()"><div><h3>老闆行程</h3><small>接下來 ${list.length} 筆</small></div></div>`
+    + (li ? '<ul>'+li+'</ul>' : '<div class="none">接下來沒有行程</div>')
+    + `<a class="more" onclick="toggleBoss()">查看完整行程 ›</a>`;
+}
 
 /* ---------- 休假表單 ---------- */
 function openLeave(id, ds, pre){
@@ -1203,7 +1297,7 @@ document.addEventListener('keydown',e=>{ if(e.key==='Escape') document.querySele
 let rw; addEventListener('resize',()=>{ clearTimeout(rw); rw=setTimeout(()=>S.view==='cal'&&render(),200); });
 
 (async()=>{
-  $('demo').hidden = !!API_URL;
+  $('demo').hidden = !!API_URL; if(!API_URL) $('demo').textContent='示範模式：還沒接上後端，資料只是範例，重新整理就會不見';
   const t=new Date(); S.y=t.getFullYear(); S.m=t.getMonth();
   if(loadCache()){ readHash(); render(); await loadAll(true); render(); }   // 有舊資料：先秀，背景更新
   else { await loadAll(); readHash(); render(); }
