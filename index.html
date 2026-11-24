@@ -305,6 +305,15 @@ aside.boss{display:none}
       <div class="f"><label>開始日 *</label><input type="date" id="e_s"></div>
       <div class="f"><label>結束日</label><input type="date" id="e_e"></div>
     </div>
+    <div class="f"><label>重複</label><select id="e_rep"></select>
+      <div id="e_repbox" hidden>
+        <div class="two" style="margin-top:8px">
+          <div class="f"><label>遇到假日</label><select id="e_hol"><option value="提前">提前到上班日</option><option value="延後">延後到上班日</option><option value="照排">照排不動</option></select></div>
+          <div class="f"><label>重複到（空白＝一直重複）</label><input type="month" id="e_until"></div>
+        </div>
+        <div class="hint" id="e_rephint"></div>
+      </div>
+    </div>
     <div class="f"><label><input type="checkbox" id="e_allday" checked style="width:auto"> 整天</label></div>
     <div class="two" id="e_times" hidden>
       <div class="f"><label>開始時間</label><input type="time" id="e_ts"></div>
@@ -476,7 +485,7 @@ async function api(method, payload){
 /* 先用上次存在這台裝置的資料畫出來，背景再抓最新的 */
 const CACHE_KEY = 'ymtoday_cache_v1';
 function applyData(r){
-  S.staff = r.staff||[]; S.events = r.events||[]; S.leaves = r.leaves||[];
+  S.staff = r.staff||[]; S.events = r.events||[]; S.leaves = r.leaves||[]; S.rules = r.rules||[];
   S.events.forEach(e=>{ if(OLD_CATS[e.類別]) e.類別=OLD_CATS[e.類別]; }); // 舊類別名稱自動換新
   S.dutyStaff = r.dutyStaff || []; S.duties = r.duties || [];
   if(r.hol) Object.keys(r.hol).forEach(y=>{ if(Array.isArray(r.hol[y])) S.hol[y]=r.hol[y]; });
@@ -484,7 +493,7 @@ function applyData(r){
 }
 function saveCache(){
   if(!API_URL) return;
-  try{ localStorage.setItem(CACHE_KEY, JSON.stringify({t:Date.now(), staff:S.staff, dutyStaff:S.dutyStaff, events:S.events, leaves:S.leaves, duties:S.duties, hol:S.hol})); }catch(e){}
+  try{ localStorage.setItem(CACHE_KEY, JSON.stringify({t:Date.now(), staff:S.staff, dutyStaff:S.dutyStaff, events:S.events, rules:S.rules, leaves:S.leaves, duties:S.duties, hol:S.hol})); }catch(e){}
 }
 function loadCache(){
   if(!API_URL) return false;
@@ -795,7 +804,7 @@ function dutyHTML(){
   for(const ds of days){
     const p = dutyVal(ds), hs = holOn(ds).map(x=>x.name).join('、');
     const warn = [];
-    if(p && onLeave(p,ds)) warn.push('⚠ '+esc(p)+' 那天有請假');
+    if(p && onLeave(p,ds)) warn.push('⚠ '+esc(p)+' 那天休假');
     if(p && !isOffDay(ds)) warn.push('這天不是假日');
     if(p && !S.dutyStaff.includes(p)) warn.push('代班');
     h += `<tr class="${ds in DUTY.pending?'chg':''}"><td>${md(ds)}${hs?`<div style="color:var(--red);font-size:12px">${esc(hs)}</div>`:''}</td>
@@ -858,7 +867,7 @@ function autoDuty(){
   }
   closeM('mDuty');
   S.view='duty'; [...$('tabs').children].forEach(b=>b.classList.toggle('on',b.dataset.v==='duty'));
-  render(); toast(`排好 ${n} 天${skip?`，${skip} 天大家都請假沒排到`:''}；確認後按「儲存」`);
+  render(); toast(`排好 ${n} 天${skip?`，${skip} 天大家都休假沒排到`:''}；確認後按「儲存」`);
 }
 addEventListener('beforeunload', e=>{ if(Object.keys(DUTY.pending).length){ e.preventDefault(); e.returnValue=''; } });
 
@@ -949,7 +958,7 @@ function showEvent(id){
   const e = S.events.find(x=>x.id===id); if(!e) return;
   closeM('mDay');
   document.getElementById('xTitle').textContent = e.標題;
-  document.getElementById('xBody').innerHTML = dl([['類別',e.類別],['日期',range(e.開始日,e.結束日)],['時間',evTime(e)],['地點',e.地點],['參與人',e.參與人],['備註',e.備註],['登記人',e.建立人],['最後更新',e.更新時間]]);
+  document.getElementById('xBody').innerHTML = dl([['類別',e.類別],['日期',range(e.開始日,e.結束日)],['重複',e.重複?'🔁 '+e.重複:''],['時間',evTime(e)],['地點',e.地點],['參與人',e.參與人],['備註',e.備註],['登記人',e.建立人],['最後更新',e.更新時間]]);
   document.getElementById('xEdit').onclick = ()=>{ closeM('mDetail'); openEvent(id); };
   openM('mDetail');
 }
@@ -966,10 +975,19 @@ function showLeave(id){
 const $ = id => document.getElementById(id);
 function openEvent(id, ds, pre){
   if(!pre) S.qaFrom = null;
-  const e = id ? S.events.find(x=>x.id===id) : (pre||null);
+  let e = id ? S.events.find(x=>x.id===id) : (pre||null);
+  const rule = e && e.規則id ? (S.rules||[]).find(r=>r.id===e.規則id) : null;
+  S.editRule = rule ? rule.id : null;
+  if(rule){ // 每月重複的行程：表單顯示規則本身，日期用「原本的那天」（不是遇假日調整後的）
+    let ds0 = e.開始日;
+    if(rule.規則==='每月日期'){ const y=+ds0.slice(0,4), m=+ds0.slice(5,7), last=new Date(y,m,0).getDate(); ds0 = ds0.slice(0,8)+String(Math.min(+rule.日||1,last)).padStart(2,'0'); }
+    else if(rule.遇假日 && rule.遇假日!=='照排'){ const y=+ds0.slice(0,4), m=+ds0.slice(5,7); ds0 = nthWeekday(y,m,+rule.星期,+rule.第幾); }
+    e = Object.assign({}, rule, {開始日:ds0, 結束日:ds0});
+    id = null;
+  }
   S.editId = id || null;
-  $('evTitle').textContent = id ? '編輯行程' : '新增行程';
-  $('e_del').hidden = !id;
+  $('evTitle').textContent = rule ? '編輯每月重複行程' : (id ? '編輯行程' : '新增行程');
+  $('e_del').hidden = !(id || rule);
   $('e_title').value = e?.標題 || '';
   $('e_cat').innerHTML = CATS.map(c=>`<label><input type="radio" name="e_cat" value="${c[0]}" ${(e?.類別||'倚盟')===c[0]?'checked':''}><i style="width:8px;height:8px;border-radius:50%;background:${c[1]};display:inline-block"></i>${c[0]}</label>`).join('');
   $('e_s').value = e?.開始日 || ds || todayStr();
@@ -982,6 +1000,9 @@ function openEvent(id, ds, pre){
   const who = Array.isArray(e?.參與人) ? e.參與人 : (e?.參與人||'').split(/[、,，]/).filter(Boolean);
   $('e_who').innerHTML = S.staff.map(p=>`<label><input type="checkbox" value="${esc(p)}" ${who.includes(p)?'checked':''}>${esc(p)}</label>`).join('');
   $('e_note').value = e?.備註 || '';
+  $('e_hol').value = rule?.遇假日 || '提前';
+  $('e_until').value = rule?.結束月 || '';
+  repOptions(rule ? (rule.規則==='每月日期'?'D':(+rule.第幾===-1?'L':'W')) : '');
   checkEventConflict();
   openM('mEvent'); setTimeout(()=>!e&&$('e_title').focus(),50);
 }
@@ -1010,9 +1031,69 @@ async function saveEvent(){
     開始日:s, 結束日:e, 開始時間:allday?'':$('e_ts').value, 結束時間:allday?'':$('e_te').value, 地點:$('e_loc').value.trim(),
     參與人:[...$('e_who').querySelectorAll('input:checked')].map(x=>x.value).join('、'), 備註:$('e_note').value.trim(), 建立人:(S.editId?(S.events.find(x=>x.id===S.editId)||{}).建立人:'')||'' };
   if(data.類別==='老闆私人' && S.staff.includes('老闆') && !data.參與人.split('、').includes('老闆')) data.參與人=['老闆',...data.參與人.split('、').filter(Boolean)].join('、');
+  const rep = $('e_rep').value;
+  if(rep || S.editRule) return saveRule(data, rep);
   await save('saveEvent', data, 'mEvent', 'e_save', S.events);
 }
-async function delEvent(){ if(confirm('確定刪除這筆行程？')) await remove('deleteEvent', S.editId, 'mEvent', S.events); }
+async function delEvent(){
+  if(S.editRule){ if(confirm('這是每月重複的行程，刪除後每個月的都會一起刪掉，確定嗎？')) await ruleCall({action:'deleteRule', id:S.editRule}, '已刪除'); return; }
+  if(confirm('確定刪除這筆行程？')) await remove('deleteEvent', S.editId, 'mEvent', S.events);
+}
+
+/* ---------- 每月重複 ---------- */
+const WK='日一二三四五六';
+function nthWeekday(y,m,wd,k){ // 第 k 個星期 wd（k=-1 最後一個），回傳 yyyy-mm-dd
+  const last=new Date(y,m,0).getDate(); let d;
+  if(k===-1){ const lw=new Date(y,m-1,last).getDay(); d=last-((lw-wd+7)%7); }
+  else { const f=new Date(y,m-1,1).getDay(); d=1+((wd-f+7)%7)+(k-1)*7; if(d>last) d-=7; }
+  return y+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+}
+function repInfo(ds){ const d=parse(ds), day=d.getDate(), last=new Date(d.getFullYear(),d.getMonth()+1,0).getDate();
+  return { day, wd:d.getDay(), k:Math.ceil(day/7), isLast: day+7>last }; }
+function repOptions(sel){
+  const s=$('e_s').value||todayStr(), r=repInfo(s);
+  const opts=[['','不重複'],['D',`每月 ${r.day} 號`],['W',`每月第 ${Math.min(r.k,4)} 個週${WK[r.wd]}`]];
+  if(r.isLast) opts.push(['L',`每月最後一個週${WK[r.wd]}`]);
+  const cur = sel!==undefined ? sel : $('e_rep').value;
+  $('e_rep').innerHTML = opts.map(o=>`<option value="${o[0]}" ${o[0]===cur?'selected':''}>${o[1]}</option>`).join('');
+  if(!opts.some(o=>o[0]===cur)) $('e_rep').value='';
+  repChanged();
+}
+function repChanged(){
+  const on = !!$('e_rep').value;
+  $('e_repbox').hidden = !on;
+  $('e_e').disabled = on; if(on) $('e_e').value = $('e_s').value;
+  $('e_rephint').textContent = on ? (S.editRule ? '🔁 修改會套用到每個月；選「不重複」會改成只有這一天' : '🔁 儲存後，之後每個月都會自動出現在行事曆，LINE 前一天也會提醒') : '';
+}
+async function ruleCall(body, msg){
+  const b=$('e_save'); b.disabled=true; busy(true);
+  try{
+    const r = await api('POST', body);
+    if(!r.ok) throw r.error || '失敗';
+    closeM('mEvent'); await loadAll(true); render(); toast(msg);
+  }catch(e){ toast('失敗：'+e); }
+  b.disabled=false; busy(false);
+}
+async function saveRule(data, rep){
+  if(!rep){ // 原本是重複的，改成不重複：存成一般行程，再刪掉規則
+    const rid=S.editRule;
+    busy(true);
+    try{
+      const r1 = await api('POST',{action:'saveEvent', data:Object.assign({}, data, {id:''})}); if(!r1.ok) throw r1.error;
+      const r2 = await api('POST',{action:'deleteRule', id:rid}); if(!r2.ok) throw r2.error;
+      closeM('mEvent'); await loadAll(true); render(); toast('已改成只有這一天');
+    }catch(e){ toast('失敗：'+e); }
+    busy(false); return;
+  }
+  const r = repInfo(data.開始日), old = S.editRule ? (S.rules||[]).find(x=>x.id===S.editRule) : null;
+  const sm = data.開始日.slice(0,7);
+  const rule = { id:S.editRule||'', 標題:data.標題, 類別:data.類別, 規則: rep==='D'?'每月日期':'每月週',
+    日: rep==='D'? String(r.day):'', 第幾: rep==='D'?'': (rep==='L'?'-1':String(Math.min(r.k,4))), 星期: rep==='D'?'':String(r.wd),
+    開始時間:data.開始時間, 結束時間:data.結束時間, 地點:data.地點, 參與人:data.參與人, 備註:data.備註,
+    開始月: old && old.開始月 < sm ? old.開始月 : sm, 結束月: $('e_until').value||'', 遇假日: $('e_hol').value };
+  if(rule.結束月 && rule.結束月 < rule.開始月) return toast('「重複到」不能早於開始的月份');
+  await ruleCall({action:'saveRule', data:rule}, '已儲存，每個月都會出現');
+}
 
 
 /* ---------- v2：統計卡＋老闆近期行程 ---------- */
@@ -1274,9 +1355,10 @@ $('tabs').onclick = e=>{ const v=e.target.dataset.v; if(!v) return;
 ['fPerson','fEv','fLv','fDu'].forEach(id=>$(id).onchange=render);
 $('fPerson').onchange=()=>{ S.bossMode=false; render(); };
 $('e_allday').onchange = ()=>{ $('e_times').hidden = $('e_allday').checked; };
-$('e_s').onchange = ()=>{ eFollow(); checkEventConflict(); };
+$('e_s').onchange = ()=>{ eFollow(); repOptions(); checkEventConflict(); };
 $('e_e').onchange = checkEventConflict;
 $('e_who').onchange = checkEventConflict;
+$('e_rep').onchange = repChanged;
 $('e_cat').onchange = ()=>{ // 選老闆私人時自動勾老闆
   const c=(document.querySelector('input[name=e_cat]:checked')||{}).value;
   if(c==='老闆私人'){ const b=[...$('e_who').querySelectorAll('input')].find(x=>x.value==='老闆'); if(b) b.checked=true; }
