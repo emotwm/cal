@@ -308,6 +308,7 @@ aside.boss{display:none}
     <div class="f"><label>重複</label><select id="e_rep"></select>
       <div id="e_repbox" hidden>
         <div class="two" style="margin-top:8px">
+          <div class="f"><label>多久一次</label><select id="e_freq"><option value="1">每個月</option><option value="2">每兩個月（單／雙月）</option><option value="3">每三個月</option><option value="6">每半年</option><option value="12">每年</option></select></div>
           <div class="f"><label>遇到假日</label><select id="e_hol"><option value="提前">提前到上班日</option><option value="延後">延後到上班日</option><option value="照排">照排不動</option></select></div>
           <div class="f"><label>重複到（空白＝一直重複）</label><input type="month" id="e_until"></div>
         </div>
@@ -1003,7 +1004,8 @@ function openEvent(id, ds, pre){
   $('e_note').value = e?.備註 || '';
   $('e_hol').value = rule?.遇假日 || '提前';
   $('e_until').value = rule?.結束月 || '';
-  repOptions(rule ? (rule.規則==='每月日期'?'D':(+rule.第幾===-1?'L':'W')) : '');
+  $('e_freq').value = String(+(rule?.間隔月)||1);
+  repOptions(rule ? (rule.規則==='每月日期'?'D':rule.規則==='每月工作日'?'K':(+rule.第幾===-1?'L':'W')) : '');
   checkEventConflict();
   openM('mEvent'); setTimeout(()=>!e&&$('e_title').focus(),50);
 }
@@ -1050,11 +1052,13 @@ function nthWeekday(y,m,wd,k){ // 第 k 個星期 wd（k=-1 最後一個），�
   return y+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0');
 }
 function repInfo(ds){ const d=parse(ds), day=d.getDate(), last=new Date(d.getFullYear(),d.getMonth()+1,0).getDate();
-  return { day, wd:d.getDay(), k:Math.ceil(day/7), isLast: day+7>last }; }
+  let wk=0; if(!isOffDay(ds)) for(let i=1;i<=day;i++){ if(!isOffDay(ds.slice(0,8)+String(i).padStart(2,'0'))) wk++; }
+  return { day, wd:d.getDay(), k:Math.ceil(day/7), isLast: day+7>last, wk }; }
 function repOptions(sel){
   const s=$('e_s').value||todayStr(), r=repInfo(s);
   const opts=[['','不重複'],['D',`每月 ${r.day} 號`],['W',`每月第 ${Math.min(r.k,4)} 個週${WK[r.wd]}`]];
   if(r.isLast) opts.push(['L',`每月最後一個週${WK[r.wd]}`]);
+  if(r.wk) opts.push(['K',`每月第 ${r.wk} 個上班日`]);
   const cur = sel!==undefined ? sel : $('e_rep').value;
   $('e_rep').innerHTML = opts.map(o=>`<option value="${o[0]}" ${o[0]===cur?'selected':''}>${o[1]}</option>`).join('');
   if(!opts.some(o=>o[0]===cur)) $('e_rep').value='';
@@ -1088,10 +1092,10 @@ async function saveRule(data, rep){
   }
   const r = repInfo(data.開始日), old = S.editRule ? (S.rules||[]).find(x=>x.id===S.editRule) : null;
   const sm = data.開始日.slice(0,7);
-  const rule = { id:S.editRule||'', 標題:data.標題, 類別:data.類別, 規則: rep==='D'?'每月日期':'每月週',
-    日: rep==='D'? String(r.day):'', 第幾: rep==='D'?'': (rep==='L'?'-1':String(Math.min(r.k,4))), 星期: rep==='D'?'':String(r.wd),
+  const rule = { id:S.editRule||'', 標題:data.標題, 類別:data.類別, 規則: rep==='D'?'每月日期':rep==='K'?'每月工作日':'每月週',
+    日: rep==='D'? String(r.day):'', 第幾: rep==='D'?'': rep==='K'?String(r.wk): (rep==='L'?'-1':String(Math.min(r.k,4))), 星期: (rep==='D'||rep==='K')?'':String(r.wd), 間隔月: $('e_freq').value,
     開始時間:data.開始時間, 結束時間:data.結束時間, 地點:data.地點, 參與人:data.參與人, 備註:data.備註,
-    開始月: old && old.開始月 < sm ? old.開始月 : sm, 結束月: $('e_until').value||'', 遇假日: $('e_hol').value };
+    開始月: old && old.開始月 <= sm && ((+sm.slice(0,4)-+old.開始月.slice(0,4))*12 + (+sm.slice(5,7)-+old.開始月.slice(5,7))) % (+$('e_freq').value||1) === 0 ? old.開始月 : sm, 結束月: $('e_until').value||'', 遇假日: $('e_hol').value };
   if(rule.結束月 && rule.結束月 < rule.開始月) return toast('「重複到」不能早於開始的月份');
   await ruleCall({action:'saveRule', data:rule}, '已儲存，每個月都會出現');
 }
